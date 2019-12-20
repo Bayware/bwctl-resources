@@ -1,0 +1,54 @@
+---
+- name: bwctl | Prerequisites | Folders create
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  with_items:
+    - { path: "{{ bwctl_home }}", owner: "{{ bwctl_user }}", group: "{{ bwctl_user }}", mode: "0755" }
+    - { path: "{{ terraform_dst_dir }}", owner: "{{ bwctl_user }}", group: "{{ bwctl_user }}", mode: "0755" }
+  become: yes
+  tags:
+    - bwctl
+
+- name: bwctl | Install extra apt packages
+  apt:
+    name: "{{ bwctl_apt_extra_packages }}"
+  vars:
+    bwctl_apt_extra_packages:
+      - screen
+      - tmux
+  become: yes
+  tags:
+    - bwctl
+
+- name: bwctl | Install pip configuration
+  template:
+    src: "pip.conf.j2"
+    dest: "/etc/pip.conf"
+  become: yes
+  tags:
+    - bwctl
+
+- name: bwctl | Install bwctl
+  pip:
+    name: "bwctl"
+    version: "{{ bwctl_version }}"
+    state: present
+    executable: pip3
+    extra_args: "--ignore-installed"
+  become: yes
+  tags:
+    - bwctl
+
+- name: bwctl | Install bwctl resources
+  pip:
+    name: "bwctl-resources"
+    version: "{{ bwctl_version }}"
+    state: present
+    executable: pip3
+  become: yes
+  tags:
+    - bwctl

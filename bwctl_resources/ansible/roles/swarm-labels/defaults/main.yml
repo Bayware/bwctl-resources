@@ -1,0 +1,6 @@
+---
+manager_host: "{{ env_swarm_manager_host | default(inventory_hostname) }}"
+labels:
+  - { group: "controller", label: "orchestrator" }
+  - { group: "telemetry", label: "ipg" }
+  - { group: "events", label: "elk" }

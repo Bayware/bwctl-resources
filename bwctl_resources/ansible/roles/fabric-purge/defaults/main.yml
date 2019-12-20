@@ -1,0 +1,5 @@
+---
+fabric_name: "{{ env_fabric_name | default('fabric') }}"
+fabric_dirs:
+  - "~/.bwctl/{{ fabric_name }}"
+  - "~/.bwctl/terraform/{{ fabric_name }}"

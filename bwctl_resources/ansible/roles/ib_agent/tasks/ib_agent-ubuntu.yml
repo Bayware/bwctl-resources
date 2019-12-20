@@ -1,0 +1,35 @@
+---
+- name: "{{ linux_distribution }} | ib_agent | Install"
+  block:
+    - name: "{{ linux_distribution }} | ib_agent | apt | Install"
+      apt:
+        name:
+          - "ib-agent"
+        state: present
+        update_cache: yes
+      register: ib_agent_apt_install_result
+      retries: "{{ ansible_task_retries }}"
+      until:    ib_agent_apt_install_result is succeeded
+
+    - name: "{{ linux_distribution }} | ib_agent | Service stop"
+      systemd:
+        name:    "ib-agent"
+        state:   stopped
+        enabled: yes
+  when: install_only
+  tags:
+    - ib_agent
+
+- name: "{{ linux_distribution }} | ib_agent | apt | Update"  # noqa 403
+  apt:
+    name:
+      - "ib-agent"
+    only_upgrade: yes
+    update_cache: yes
+    state: latest
+  register: ib_agent_apt_upgrade_result
+  retries: "{{ ansible_task_retries }}"
+  until:    ib_agent_apt_upgrade_result is succeeded
+  when: update_agent
+  tags:
+    - ib_agent

@@ -1,0 +1,25 @@
+---
+- name: "Common | ib_agent | Service restart"
+  systemd:
+    name:  "ib-agent"
+    state: restarted
+  when: restart_agent
+  tags:
+    - ib_agent
+
+- name: "Common | ib_agent | Service start"
+  systemd:
+    name:    "ib-agent"
+    state:   started
+    enabled: yes
+  when: start_agent
+  tags:
+    - ib_agent
+
+- name: "Common | ib_agent | Service stop"
+  systemd:
+    name:  "ib-agent"
+    state: stopped
+  when: stop_agent
+  tags:
+    - ib_agent

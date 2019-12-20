@@ -1,0 +1,50 @@
+---
+- name: haproxy | Install | Install package
+  apt:
+    name:  "haproxy"
+    state: present
+  notify:
+    - enable haproxy
+  tags:
+    - haproxy
+  register: haproxy_apt_filebeat_result
+  retries: "{{ ansible_task_retries }}"
+  until:    haproxy_apt_filebeat_result is succeeded
+
+- name: haproxy | Configure | Assemble certificate
+  assemble:
+    src:    "/etc/letsencrypt/live/{{ cert_item.domains | first }}"
+    dest:   "/etc/haproxy/{{ cert_item.domains | first }}.pem"
+    regexp: "(fullchain.pem|privkey.pem)"
+    mode:   "0400"
+  when:
+    - "company_list | length > 0"
+  with_items: "{{ certbot_certs }}"
+  loop_control:
+    loop_var: cert_item
+  notify:
+    - restart haproxy
+  tags:
+    - haproxy
+
+- name: haproxy | Configure | Use stronger Diffie-Hellman parameters
+  copy:
+    src:   "files/dhparam.pem"
+    dest:  "/etc/haproxy/dhparam.pem"
+    owner: "root"
+    group: "root"
+    mode:  "0644"
+  tags:
+    - haproxy
+
+- name: haproxy | Configure | Copy configuration from template
+  template:
+    src:    "templates/haproxy.cfg.j2"
+    dest:   "/etc/haproxy/haproxy.cfg"
+    force:  yes
+  when:
+    - "company_list | length > 0"
+  notify:
+    - restart haproxy
+  tags:
+    - haproxy

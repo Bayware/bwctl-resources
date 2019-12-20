@@ -1,0 +1,9 @@
+---
+bayware_home: "/opt/bayware"
+bwctl_user: "{{ ansible_user }}"
+bwctl_home: "/home/{{ bwctl_user }}/.bwctl"
+terraform_dst_dir: "{{ bwctl_home }}/terraform"
+repo_branch: "{{ env_repo_branch | default('master') }}"
+bwctl_repo_suffix: "{{ '' if repo_branch == 'master' else '-unstable' }}"
+bwctl_repo_host: "bayware-bwctl-repo{{ bwctl_repo_suffix }}.s3-website-us-west-1.amazonaws.com"
+bwctl_version: "{{ env_bwctl_version | default(lookup('file', '../../../../../bwctl/version.txt')) }}"

@@ -1,0 +1,19 @@
+---
+- name: ssh | keygen | Create directory structure
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode: "{{ item.mode  | default(omit) }}"
+  with_items:
+    - { path: "{{ ssh_root_dir }}", mode: "0755" }
+    - { path: "{{ ssh_key_dir }}", mode: "0755" }
+  tags:
+    - ssh-keygen
+
+- name: ssh | keygen | Generate key
+  openssh_keypair:
+    path: "{{ ssh_key_dir }}/{{ ssh_key_file }}"
+  tags:
+    - ssh-keygen

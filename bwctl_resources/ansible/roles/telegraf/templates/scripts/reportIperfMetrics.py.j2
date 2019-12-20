@@ -1,0 +1,115 @@
+#!/usr/bin/env python2.7
+"""
+Run iPerf client for IP address and output stats to a file.
+"""
+
+import sys
+
+try:
+    import iperf3
+except ImportError as err:
+    sys.stderr.write('[FATAL] Unable to import \'iperf3\': {}\n'
+                     'If it\'s not installed please issue \'pip install iperf3\'\n'
+                     .format(err))
+    sys.exit(127)
+
+import contextlib
+import os
+import argparse
+import stat
+import tempfile
+import json
+
+
+@contextlib.contextmanager
+def atomic_write(
+        filename,
+        text=True,
+        keep=True,
+        owner=None,
+        group=None,
+        perms=None,
+        suffix='.bak',
+        prefix='tmp'
+):
+    """Context manager for overwriting a file atomically.
+    Reworked version from
+      https://github.com/ActiveState/code/tree/master/recipes/Python/579097_Safely_atomically_write
+
+    Note: original file must exist.
+    """
+    t = (uid, gid, mod) = (owner, group, perms)
+    if any(x is None for x in t):
+        info = os.stat(filename)
+        if uid is None:
+            uid = info.st_uid
+        if gid is None:
+            gid = info.st_gid
+        if mod is None:
+            mod = stat.S_IMODE(info.st_mode)
+    path = os.path.dirname(filename)
+    file_desc, tmp = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=path, text=text)
+    try:
+        replace = os.replace  # Python 3.3 and better.
+    except AttributeError:
+        # Atomic on POSIX.
+        replace = os.rename
+    try:
+        with os.fdopen(file_desc, 'w' if text else 'wb') as fname:
+            yield fname
+        # Perform an atomic rename (if possible). This will be atomic on
+        # POSIX systems for Python 3.3 or higher.
+        replace(tmp, filename)
+        tmp = None
+        os.chown(filename, uid, gid)
+        os.chmod(filename, mod)
+    finally:
+        if (tmp is not None) and (not keep):
+            # Silently delete the temporary file. Ignore any errors.
+            try:
+                os.unlink(tmp)
+            except Exception as exc_err:
+                print "Warning: caught '{}'".format(exc_err)
+                # pass
+
+
+def parse_cmd_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('ip', help='IP address for the test.', type=str)
+    return parser.parse_args()
+
+
+def run_iperf_client(ip_address):
+    """Run iPerf3 client and output stats to a file"""
+    filename = '/tmp/iperf3-output-data-{}'.format(str(ip_address))
+    client = iperf3.Client()
+    client.duration = 7
+    client.server_hostname = ip_address
+    client.port = 5201
+    client.bandwidth = 1048576
+
+    res = client.run()
+    if res.error:
+        print("Caught error: '{}'".format(res.error))
+        sys.exit(1)
+
+    try:
+        with atomic_write(filename) as atomic_f:
+            atomic_f.write(json.dumps(res.json))
+            atomic_f.close()
+    except OSError:
+        new_f = open(filename, 'w')
+        new_f.write(json.dumps(res.json))
+        new_f.close()
+
+
+def main():
+    """Main function, start the ball"""
+    # Create and parse command line parameters
+    args = parse_cmd_args()
+    run_iperf_client(args.ip)
+
+
+if __name__ == '__main__':
+    main()

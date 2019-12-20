@@ -1,0 +1,9 @@
+---
+# Environment
+- include_tasks: environment.yml
+
+# Install
+- include_tasks: "install-{{ linux_distribution }}.yml"
+
+# Configure
+- include_tasks: configure.yml

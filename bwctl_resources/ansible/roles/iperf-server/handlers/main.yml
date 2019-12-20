@@ -1,0 +1,13 @@
+---
+# RedHat
+#
+
+# Ubuntu
+#
+- name: ubuntu restart iperf3-server
+  systemd:
+    name:    "iperf3-server"
+    state:   restarted
+    enabled: yes
+    daemon_reload: yes
+  when: service_started is not changed

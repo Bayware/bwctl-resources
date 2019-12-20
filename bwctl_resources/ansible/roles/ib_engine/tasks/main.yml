@@ -1,0 +1,103 @@
+---
+- name: ib_engine install
+  block:
+    - name: ib_engine | apt | Install Open vSwitch
+      apt:
+        name:
+          - "openvswitch-switch"
+        state: present
+        update_cache: yes
+      register: ib_ovs_apt_install_result
+      retries: "{{ ansible_task_retries }}"
+      until:    ib_ovs_apt_install_result is succeeded
+
+    - name: ib_engine | apt | Install ib_engine
+      apt:
+        name:
+          - "ib-engine"
+        state: present
+        update_cache: yes
+      register: ib_engine_apt_install_result
+      retries: "{{ ansible_task_retries }}"
+      until:    ib_engine_apt_install_result is succeeded
+
+    - name: ib_engine | service | stop
+      systemd:
+        name:    "ib-engine"
+        state:   stopped
+        enabled: yes
+  when: install_only
+  tags:
+    - ib_engine
+
+- name: ib_engine configure
+  block:
+    - name: ib_engine | service | stop
+      systemd:
+        name:    "ib-engine"
+        state:   stopped
+        enabled: yes
+
+    - name: ib_engine | ib_engine | configure
+      shell: >
+        /opt/bayware/ib-engine/bin/ib-configure -s
+        -c {{ ib_engine_orchestrator }}
+        -l {{ ib_engine_location_label }}
+      tags:
+        - skip_ansible_lint
+
+    - name: ib_engine | ip_sec | logfile create
+      command: "/opt/bayware/ib-engine/bin/ib-ipsec -l 2 -o /var/log/strongswan.log"
+      tags:
+        - skip_ansible_lint
+
+    - name: ib_engine | configure ovs
+      command: |
+        ovs-vsctl -- --id=@sflow create sflow agent={{ ansible_default_ipv4.address }} \
+                 target="\"{{ sflow_target_ip }}:6343\"" header=128 \
+                 sampling=64 polling=10 \
+                 -- set bridge ib-br sflow=@sflow
+  when: configure_engine
+  tags:
+    - ib_engine
+
+- name: ib_engine | service | restart
+  systemd:
+    name:    "ib-engine"
+    state:   restarted
+    enabled: yes
+  when: restart_engine
+  tags:
+    - ib_engine
+
+- name: ib_engine | service | start
+  systemd:
+    name:    "ib-engine"
+    state:   started
+    enabled: yes
+  when: start_engine
+  tags:
+    - ib_engine
+
+- name: ib_engine | service | stop
+  systemd:
+    name:  "ib-engine"
+    state: stopped
+  when: stop_engine
+  tags:
+    - ib_engine
+
+- name: ib_engine | apt | update ib_engine
+  apt:
+    name:
+      - "ib-engine"
+    only_upgrade: yes
+    update_cache: yes
+    state: latest
+  register: ib_engine_apt_upgrade_result
+  retries: "{{ ansible_task_retries }}"
+  until:    ib_engine_apt_upgrade_result is succeeded
+  when: update_engine
+  tags:
+    - skip_ansible_lint
+    - ib_engine

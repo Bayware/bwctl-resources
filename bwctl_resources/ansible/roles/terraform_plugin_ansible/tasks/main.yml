@@ -1,0 +1,56 @@
+---
+- name: terraform | ansible plugin | check version
+  stat:
+    path: "/home/{{ terraform_plugin_user }}/.terraform.d/plugins/linux_amd64/terraform-provider-ansible_v{{ terraform_plugin_version }}"
+  register: terraform_plugin
+  tags:
+    - terraform_plugin_ansible
+
+- name: terraform | ansible plugin | download
+  get_url: url="https://github.com/nbering/terraform-provider-ansible/releases/download/v{{ terraform_plugin_version }}/terraform-provider-ansible-linux_amd64.zip"
+           dest="/usr/local/src/terraform-provider-ansible-v{{ terraform_plugin_version }}-linux_amd64.zip"
+  when: not terraform_plugin.stat.exists
+  register: terraform_plugin_downloaded
+  become: yes
+  tags:
+    - terraform_plugin_ansible
+
+- name: terraform | ansible plugin | find any other versions
+  find:
+    paths:     "/home/{{ terraform_plugin_version }}/.terraform.d/plugins/linux_amd64"
+    patterns:  "^terraform-provider-ansible*"
+    use_regex: yes
+  register: files_to_delete
+  when: terraform_plugin_downloaded is changed
+  tags:
+    - terraform_plugin_ansible
+
+- name: terraform | ansible plugin | remove other versions
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ files_to_delete.files }}"
+  when: terraform_plugin_downloaded is changed
+  tags:
+    - terraform_plugin_ansible
+
+- name: terraform | ansible plugin | create directories
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  with_items:
+    - { path: "/home/{{ terraform_plugin_user }}/.terraform.d", mode: "0755", owner: "{{ terraform_plugin_user }}" }
+    - { path: "/home/{{ terraform_plugin_user }}/.terraform.d/plugins", mode: "0755", owner: "{{ terraform_plugin_user }}" }
+  tags:
+    - terraform_plugin_ansible
+
+- name: terraform | ansible plugin | install
+  unarchive: src="/usr/local/src/terraform-provider-ansible-v{{ terraform_plugin_version }}-linux_amd64.zip"
+             dest="/home/{{ terraform_plugin_user }}/.terraform.d/plugins"
+             copy=no
+  when: terraform_plugin_downloaded is changed
+  tags:
+    - terraform_plugin_ansible

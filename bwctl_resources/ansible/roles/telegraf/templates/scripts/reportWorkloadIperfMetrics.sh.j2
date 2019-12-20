@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# Write safe shell scripts
+set -euf -o pipefail
+
+# Keep environment clean
+export LC_ALL="C"
+readonly TMP_DIR="/tmp"
+readonly TMP_OUTPUT="${TMP_DIR}/$$.out"
+readonly IPERF_RESULTS_PREFIX="/tmp/iperf3-output-data"
+readonly IB_AGENT_CONF='/opt/bayware/ib-agent/conf/ib-agent.conf'
+
+trap 'rm -rf ${TMP_OUTPUT}' \
+  EXIT SIGHUP SIGINT SIGQUIT SIGPIPE SIGTERM
+
+function run_iperf {
+  # Run ping and print results in InfluxDB readable format
+  # Takes two arguments:
+  #   - Destination host IP address
+  #   - Destination host ID (hostname)
+  IPERF_RESULTS_AGE=$((60*60+1))
+  [[ -r "${IPERF_RESULTS_PREFIX}-$1" ]] && \
+    IPERF_RESULTS_AGE=$(( $(date +%s) - $(stat -L --format %Y "${IPERF_RESULTS_PREFIX}-$1") ))
+
+  if [[ $IPERF_RESULTS_AGE -ge $((60*60)) ]]; then
+    # run iperf again (more than 1h passed by)
+    timeout 10s /opt/reportIperfMetrics.py "$1"
+  fi
+  # parse the results
+  read -r I_BPS_O I_BPS_I <<< \
+    $(jq -r '. | "\(.end.sum_sent.bits_per_second | floor) \(.end.sum_received.bits_per_second | floor)"' "${IPERF_RESULTS_PREFIX}-$1")
+  [[ -n "${I_BPS_O}" ]] && \
+    printf "iperf,host=%s,remote_ip=%s,remote_name=%s bandwidth_out=%s\\n" "$HOSTNAME" "$1" "$2" "${I_BPS_O}"
+  [[ -n "${I_BPS_I}" ]] && \
+    printf "iperf,host=%s,remote_ip=%s,remote_name=%s bandwidth_in=%s\\n" "$HOSTNAME" "$1" "$2" "${I_BPS_I}"
+  [[ -n "${I_BPS_O}" && -n "${I_BPS_I}" ]] && \
+    printf "iperf,host=%s,remote_ip=%s,remote_name=%s bandwidth_health=%s\\n" "$HOSTNAME" "$1" "$2" "$(bc -l <<< "scale=3; 1-(${I_BPS_O}-${I_BPS_I})/${I_BPS_O}" |awk '{ printf "%.3f\n", $0 }')"
+}
+
+# Start the ball
+[[ ! -r "${IB_AGENT_CONF}" ]] && exit 0
+{ read REST_HOST; read REST_PORT; } <<< $(grep -E "rest_ip|rest_port" "${IB_AGENT_CONF}" | awk -F'[ =]+' '{ print $2 }')
+readonly CURL_URL="http://${REST_HOST}:${REST_PORT}/api/v1/service/resolver"
+if curl -Ssf --max-time 2 "${CURL_URL}" -o"${TMP_OUTPUT}" 2> /dev/null; then
+  for endpoint in $(jq -r ". | to_entries[] | \"\(.key):\(.value.unicast_ip)\"" "${TMP_OUTPUT}"); do
+    read -r e_ip e_res <<< $(echo "$endpoint" |awk -F':' '{ if ($2 != "") print $1" "$2 }')
+    if [[ -n ${e_ip} ]]; then
+      run_iperf "${e_ip}" "${e_res}" &
+    fi
+  done
+fi
+
+wait
+
+# EOF

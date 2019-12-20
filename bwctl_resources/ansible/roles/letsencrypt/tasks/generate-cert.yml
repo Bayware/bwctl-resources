@@ -1,0 +1,38 @@
+---
+- name: Letsencrypt | Generate | Check if certificate already exists
+  stat:
+    path: "/etc/letsencrypt/live/{{ cert_item.domains | first }}/cert.pem"
+  register: letsencrypt_cert
+  tags:
+    - letsencrypt
+    - nginx
+
+- name: Letsencrypt | Generate | Stop services to allow certbot to generate a certificate
+  systemd:
+    name:  "{{ item }}"
+    state: stopped
+  when: not letsencrypt_cert.stat.exists
+  with_items: "{{ certbot_create_standalone_stop_services }}"
+  ignore_errors: yes
+  tags:
+    - letsencrypt
+    - nginx
+
+- name: Letsencrypt | Generate | Generate new certificate if none
+  shell: "{{ certbot_create_command }}"
+  when: not letsencrypt_cert.stat.exists
+  tags:
+    - skip_ansible_lint
+    - letsencrypt
+    - nginx
+
+- name: Letsencrypt | Generate | Start services after certificate has been generated
+  systemd:
+    name:  "{{ item }}"
+    state: started
+  when: not letsencrypt_cert.stat.exists
+  with_items: "{{ certbot_create_standalone_stop_services }}"
+  ignore_errors: yes
+  tags:
+    - letsencrypt
+    - nginx

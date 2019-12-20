@@ -1,0 +1,28 @@
+---
+- name: Node | Check if reachable (Processor/Orchestrator)
+  wait_for:
+    host:    "{{ ansible_host }}"
+    port:    22
+    timeout: 30
+  delegate_to: localhost
+  when: "'processor' in group_names or 'orchestrator' in group_names"
+  retries: 10
+  delay: 3
+  register: result
+  until: result is succeeded
+  tags:
+    - online
+
+- name: Node | Check if reachable (Workload)
+  wait_for:
+    host:    "{{ ansible_host }}"
+    port:    22
+    timeout: 30
+  delegate_to: "{{ ssh_proxy_host.name }}"
+  when: "'workload' in group_names"
+  retries: 10
+  delay: 3
+  register: result
+  until: result is succeeded
+  tags:
+    - online

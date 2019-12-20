@@ -1,0 +1,4 @@
+---
+manager_host: "{{ env_swarm_manager_host | default(inventory_hostname) }}"
+
+bw_home_dir: "/opt/bayware"

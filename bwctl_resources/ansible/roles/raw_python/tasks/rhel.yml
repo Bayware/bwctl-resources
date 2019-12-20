@@ -1,0 +1,21 @@
+---
+- name: RedHat | Bootstrap | Check if python installed
+  block:
+    - name: RedHat | Bootstrap | Try to gather facts
+      setup:
+
+  rescue:
+    - name: "RedHat | Install python package"
+      raw: "test -e /usr/bin/python3 || (sudo dnf install python3 -y)"
+      register: install_python_result
+      retries:  "{{ ansible_task_retries }}"
+      until:    install_python_result is succeeded
+      tags:
+        - python
+        - packages
+
+    - name: RedHat | Bootstrap | Gather facts
+      setup:
+
+  tags:
+    - always

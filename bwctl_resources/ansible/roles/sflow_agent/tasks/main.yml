@@ -1,0 +1,41 @@
+---
+- name: sFlow Agent | Install | Create installation directory
+  file:
+    name:  "{{ sflow_agent_install_dir }}"
+    owner: "root"
+    group: "root"
+    mode:  "0755"
+    state: directory
+  notify:
+    - restart sflow_agent
+  tags:
+    - sflow
+    - sflow_agent
+
+- name: sFlow Agent | Install | Copy file
+  copy:
+    src:   "files/{{ sflow_agent }}"
+    dest:  "{{ sflow_agent_install_dir }}/{{ sflow_agent }}"
+    owner: "root"
+    group: "root"
+    mode:  "0755"
+    force: yes
+  tags:
+    - sflow
+    - sflow_agent
+
+- name: sFlow Agent | Configure | Generate configuration from template
+  template:
+    src:   "templates/{{ item.src }}"
+    dest:  "{{ item.dest }}"
+    owner: "root"
+    group: "root"
+    mode:  "0644"
+    force: yes
+  with_items:
+    - { src: "systemd.j2", dest: "/lib/systemd/system/sflow_agent.service"   }
+  notify:
+    - restart sflow_agent
+  tags:
+    - sflow
+    - sflow_agent

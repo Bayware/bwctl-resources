@@ -1,0 +1,150 @@
+---
+- name: "{{ linux_distribution }} | Telegraf | Install | Add repository key"
+  apt_key:
+    url:   "{{ influxdb_key_url }}"
+    state: present
+  tags:
+    - telegraf
+  register: telegraf_apt_GPG_key_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    telegraf_apt_GPG_key_result is succeeded
+
+- name: "{{ linux_distribution }} | Telegraf | Install | Add apt repository"
+  apt_repository:
+    repo: 'deb {{ telegraf_apt_repository }} {{ ansible_distribution_release }} stable'
+    state: present
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Install | Install package"
+  apt:
+    pkg:   "telegraf"
+    state: present
+  tags:
+    - telegraf
+  register: telegraf_apt_telegraf_result
+  retries: "{{ ansible_task_retries }}"
+  until:    telegraf_apt_telegraf_result is succeeded
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Allow passwordless sudo for telegraf user"
+  lineinfile:
+    path:   "/etc/sudoers"
+    state:  present
+    regexp: '^telegraf ALL='
+    line:   'telegraf ALL=(root) NOPASSWD: /usr/sbin/ipsec statusall, /opt/report*Metrics.sh'
+    validate: '/usr/sbin/visudo -cf %s'
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Configure InfluxDB"
+  lineinfile:
+    dest:   "{{ telegraf_conf_dir }}/telegraf.conf"
+    regexp: "{{ item.regexp }}"
+    line:   "{{ item.line }}"
+  with_items:
+    - { regexp: '^  #? ?urls = \["http', line: "  urls = [\"https://{{ influxdb_server }}:{{ influxdb_port }}/{{ influxdb_url_prefix }}\"]" }
+    - { regexp: "^  #? ?quiet =*", line: "  quiet = true" }
+    - { regexp: "^  #? ?tls_ca =*", line: "  tls_ca = \"/etc/telegraf/ca.crt\"" }
+    - { regexp: "^  #? ?tls_cert =*", line: "  tls_cert = \"/etc/telegraf/telegraf.crt\"" }
+    - { regexp: "^  #? ?tls_key =*", line: "  tls_key = \"/etc/telegraf/telegraf.key\"" }
+    - { regexp: "^  #? ?insecure_skip_verify =*", line: "  insecure_skip_verify = true" }
+  when:
+    - "influxdb_server | length > 0"
+    - not install_only
+  notify:
+    - "restart telegraf"
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Check if certificate exists"
+  stat:
+    path: "{{ bw_home_dir }}/certs/node.crt"
+  register: crt_file
+  become: yes
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Get node key and certificates"
+  copy:
+    remote_src: yes
+    src:   "{{ item.src }}"
+    dest:  "{{ item.dst }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode:  "{{ item.mode }}"
+  when:
+    - crt_file.stat.exists
+    - not install_only
+  with_items:
+    - { src: "{{ bw_home_dir }}/certs/node.key", dst: "/etc/telegraf/telegraf.key", owner: "telegraf", group: "telegraf", mode: "0400" }
+    - { src: "{{ bw_home_dir }}/certs/node.crt", dst: "/etc/telegraf/telegraf.crt", owner: "telegraf", group: "telegraf", mode: "0644" }
+    - { src: "{{ bw_home_dir }}/certs/ca.crt", dst: "/etc/telegraf/ca.crt", owner: "telegraf", group: "telegraf", mode: "0644" }
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Find all configuration directory files"
+  find:
+    paths:    "/etc/telegraf/telegraf.d"
+    patterns: "*"
+  register: telegraf_existing_conf
+  when:
+    - not install_only
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Cleanup configuration directory"
+  file:
+    path:  "{{ item.path }}"
+    state: absent
+  with_items:
+    - "{{ telegraf_existing_conf.files }}"
+  when:
+    - not install_only
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Copy helper scripts"
+  template:
+    src:   "{{ item.src }}"
+    dest:  "{{ item.dest }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode:  "{{ item.mode }}"
+    force: yes
+  with_items:
+    - "{{ telegraf_scripts }}"
+  when:
+    - telegraf_scripts | length > 0
+    - not install_only
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Copy Telegraf global configuration parts"
+  template:
+    src:   "{{ item }}.j2"
+    dest:  "/etc/telegraf/telegraf.d/{{ item }}"
+    force: yes
+  with_items:
+    - "{{ telegraf_services }}"
+  when:
+    - telegraf_services | length > 0
+    - not install_only
+  notify:
+    - "restart telegraf"
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Configure | Copy Telegraf per-host configuration parts"
+  template:
+    src:   "{{ item }}.j2"
+    dest:  "/etc/telegraf/telegraf.d/{{ item }}"
+    force: yes
+  with_items:
+    - "{{ telegraf_host_services }}"
+  when:
+    - telegraf_host_services | length > 0
+    - not install_only
+  notify:
+    - " restart telegraf"
+  tags:
+    - telegraf

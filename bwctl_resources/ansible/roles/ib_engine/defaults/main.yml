@@ -1,0 +1,12 @@
+---
+# TODO: discuss where to find vars
+ib_engine_orchestrator: "{{ env_processor_orchestrator | default ('fqdn') }}"
+ib_engine_location_label: "{{ env_processor_location | default (inventory_hostname.split('-')[0]) }}"
+sflow_target_ip: "127.0.0.1"
+install_only: { }
+configure_engine: { }
+restart_engine: { }
+start_engine: { }
+stop_engine: { }
+update_engine: { }
+delete_engine: { }

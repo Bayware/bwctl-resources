@@ -1,0 +1,51 @@
+version: "3.2"
+services:
+  influxdb:
+    image: influxdb:latest
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    networks:
+      - main_backend
+    deploy:
+      placement:
+        constraints: [node.labels.ipg == true]
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:/grafana/
+      - GF_INSTALL_PLUGINS=grafana-worldmap-panel
+{% if grafana_security.admin_password is defined %}
+      - GF_SECURITY_ADMIN_PASSWORD={{ grafana_security.admin_password }}
+{% endif %}
+    networks:
+      - main_backend
+    depends_on:
+      - influxdb
+    deploy:
+      placement:
+        constraints: [node.labels.ipg == true]
+  sflow_enrich:
+    image: python:3.7-alpine
+    command: "/app/app.sh"
+    volumes:
+      - {{ bw_home_dir }}/sflow_enrich:/app
+    networks:
+      - main_backend
+    deploy:
+      placement:
+        constraints: [node.labels.ipg == true]
+
+networks:
+  main_backend:
+    external: true
+
+volumes:
+  influxdb_data:
+  grafana_data:

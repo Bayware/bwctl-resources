@@ -1,0 +1,22 @@
+---
+- name: SSH Security | SSH | Copy keys
+  authorized_key:
+    user: "{{ ansible_user }}"
+    key:  "{{ lookup('file', item) }}"
+  loop: "{{ ssh_keys }}"
+  when: ssh_keys | length > 0
+  tags:
+    - common
+    - ssh
+
+- name: SSH Security | SSH | Use more aggressive sshd settings
+  lineinfile:
+    dest:   "/etc/ssh/sshd_config"
+    regexp: "{{ item.regexp }}"
+    line:   "{{ item.line }}"
+  loop: "{{ sshd_configs }}"
+  notify:
+    - "restart sshd"
+  tags:
+    - common
+    - ssh

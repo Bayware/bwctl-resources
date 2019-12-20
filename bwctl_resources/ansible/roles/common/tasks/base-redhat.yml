@@ -1,0 +1,51 @@
+---
+- name: "{{ ansible_distribution }} | dnf | Do upgrade"  # noqa 403
+  dnf:
+    name:  "*"
+    state: latest
+    update_cache: yes
+  register: common_dnf_upgrade_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    common_dnf_upgrade_result is succeeded
+  tags:
+    - common
+    - packages
+
+- name: "{{ linux_distribution }} | firewalld | Restart (Azure issue workaround)"
+  systemd:
+    name:  "firewalld"
+    state: restarted
+    enabled: yes
+  when:
+    - common_dnf_upgrade_result is changed
+    - cloud == 'azr'
+  tags:
+    - common
+    - firewall
+    - firewalld
+
+- name: "{{ ansible_distribution }} | dnf | Install basic packages"
+  dnf:
+    name:
+      - "git"
+      - "python3-pip"
+    state: present
+  register: common_dnf_basic_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    common_dnf_basic_result is succeeded
+  tags:
+    - common
+    - packages
+
+- name: "{{ ansible_distribution }} | dnf | Install extra packages"
+  dnf:
+    name:  "{{ common_dnf_extra }}"
+    state: present
+  when:
+    - "common_dnf_extra | length > 0"
+  register: common_dnf_extra_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    common_dnf_extra_result is succeeded
+  tags:
+    - common
+    - packages

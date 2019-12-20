@@ -1,0 +1,178 @@
+---
+- name: x509 | Issue | Create directory structure
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  with_items:
+    - { path: "{{ x509_root_dir }}", mode: "0755" }
+    - { path: "{{ x509_crt_dir }}", mode: "0755" }
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Check if certificate already exist
+  stat:
+    path: "{{ x509_crt_dir }}/{{ item.name }}.crt"
+  with_items: "{{ x509_crt_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: crt_file
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Generate rsa key
+  command: "openssl genrsa -out {{ x509_crt_dir }}/{{ item.item.name }}.key 2048"
+  with_items: "{{ crt_file.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists and item.item.key_type == "rsa"
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Generate ECDSA key
+  command: "openssl ecparam -genkey -name prime256v1 -out {{ x509_crt_dir }}/{{ item.item.name }}.key"
+  with_items: "{{ crt_file.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists and item.item.key_type == "ecdsa"
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Copy ext file config
+  template:
+    src:   "templates/{{ item.ext_file }}.j2"
+    dest:  "{{ x509_ca_crt_dir }}/{{ item.ext_file }}"
+  delegate_to: "{{ x509_ca_host }}"
+  with_items:  "{{ x509_crt_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  become: no
+  tags:
+    - x509
+
+- name: x509 | Issue | Generate request
+  command: >
+    openssl req -new -key {{ x509_crt_dir }}/{{ item.item.name }}.key -out {{ x509_crt_dir }}/{{ item.item.name }}.csr
+    -subj '{{ item.item.subj }}'
+  with_items: "{{ crt_file.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Fetch request file to CA
+  fetch:
+    src: "{{ x509_crt_dir }}/{{ item.item.name }}.csr"
+    dest: "{{ x509_ca_crt_dir }}/{{ inventory_hostname }}/"
+    flat: yes
+  with_items: "{{ crt_file.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Generate and sign certificate on CA
+  command: >
+    openssl x509 -req -in {{ x509_ca_crt_dir }}/{{ inventory_hostname }}/{{ item.item.name }}.csr -sha256 -days 3650
+    -out {{ x509_ca_crt_dir }}/{{ inventory_hostname }}/{{ item.item.name }}.crt
+    -CAkey {{ x509_ca_crt_dir }}/{{ x509_ca_key_file }} -CA {{ x509_ca_crt_dir }}/{{ x509_ca_crt_file }}
+    -CAcreateserial -CAserial {{ x509_ca_crt_dir }}/{{ inventory_hostname }}/node.srl
+    -extfile {{ x509_ca_crt_dir }}/{{ item.item.ext_file }}
+  delegate_to: "{{ x509_ca_host }}"
+  with_items: "{{ crt_file.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists
+  become: no
+  tags:
+    - x509
+
+- name: x509 | Issue | Copy certificate to node
+  copy:
+    src:  "{{ x509_ca_crt_dir }}/{{ inventory_hostname }}/{{ item.item.name }}.crt"
+    dest: "{{ x509_crt_dir }}/{{ item.item.name }}.crt"
+    mode: "0644"
+  with_items: "{{ crt_file.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Copy CA certificate to node
+  copy:
+    src:  "{{ x509_ca_crt_dir }}/{{ x509_ca_crt_file }}"
+    dest: "{{ x509_crt_dir }}/{{ x509_crt_ca_file }}"
+    mode: "0644"
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Convert key to p8 format
+  command: >
+    openssl pkcs8 -in {{ x509_crt_dir }}/{{ item.item.name }}.key -topk8 -nocrypt
+    -out {{ x509_crt_dir }}/{{ item.item.name }}.p8
+  with_items: "{{ crt_file.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Create combined PEM file
+  shell: "cat {{ x509_crt_dir }}/{{ item.item.name }}.key {{ x509_crt_dir }}/{{ item.item.name }}.crt > {{ x509_crt_dir }}/{{ item.item.name }}.pem"
+  with_items: "{{ crt_file.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: not item.stat.exists
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Set key files permissions 1/3
+  file:
+    path:  "{{ x509_crt_dir }}/{{ item.name }}.key"
+    owner: "{{ x509_user }}"
+    mode:  "0400"
+  with_items: "{{ x509_crt_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Set key files permissions 2/3
+  file:
+    path:  "{{ x509_crt_dir }}/{{ item.name }}.p8"
+    owner: "{{ x509_user }}"
+    mode:  "0400"
+  with_items: "{{ x509_crt_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  become: yes
+  tags:
+    - x509
+
+- name: x509 | Issue | Set key files permissions 3/3
+  file:
+    path:  "{{ x509_crt_dir }}/{{ item.name }}.pem"
+    owner: "{{ x509_user }}"
+    mode:  "0400"
+  with_items: "{{ x509_crt_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  become: yes
+  tags:
+    - x509

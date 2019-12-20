@@ -1,0 +1,22 @@
+---
+- name: "{{ linux_distribution }} | Add Bayware repository"
+  block:
+    - name: "{{ linux_distribution }} | Bayware repository | Print configuration values"
+      debug:
+        msg:
+          - "Repository branch: '{{ repo_branch }}' (extra variable: '{{ env_repo_branch | default('N/A') }}')"
+          - "S3: '{{ s3_bucket }}'"
+          - "DNF repository URL: '{{ repo['rhel']['repo_url'] }}'"
+          - "Family version: '{{ family_version }}'"
+
+    - name: "{{ linux_distribution }} | Bayware repository | Add repository"
+      yum_repository:
+        name:        "Bayware-IceBreaker"
+        description: "Bayware IceBreaker Repo"
+        file:        "Bayware-{{ repo_branch }}"
+        baseurl:     "{{ repo['rhel']['repo_url'] }}"
+        gpgkey:      "{{ repo['rhel']['repo_key_url'] }}"
+        gpgcheck:    no
+
+  tags:
+    - bayware-repo

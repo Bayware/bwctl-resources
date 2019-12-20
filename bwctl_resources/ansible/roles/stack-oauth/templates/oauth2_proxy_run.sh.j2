@@ -1,0 +1,27 @@
+#!/bin/sh
+SECRET_CLIENT_ID=$(cat /run/secrets/EXTEND_CLIENT_ID)
+SECRET_CLIENT_SECRET=$(cat /run/secrets/EXTEND_CLIENT_SECRET)
+n=1
+max=10 
+while true; do
+    oauth2_proxy \
+    --http-address=0.0.0.0:4180 \
+    --email-domain=* \
+    --provider=oidc \
+    --oidc-issuer-url=https://{{ orchestrator_fqdn }}/identity/openid \
+    --client-id="$SECRET_CLIENT_ID" \
+    --client-secret="$SECRET_CLIENT_SECRET" \
+    --cookie-secure=false \
+    --cookie-secret=Ahdies2ta@Ch4Ein \
+    --cookie-expire=1h0m0s \
+    --scope="openid profile email" \
+    --redirect-url=https://{{ orchestrator_fqdn }}/oauth2/callback && break
+    if [ "$n" -le "$max" ]; then
+        echo "oauth2_proxy failed. Retry ($n/$max) in 10s..."
+        n=$((n+1))
+        sleep 10
+    else
+        echo "oauth2_proxy failed. Exiting..."
+        break
+    fi
+done

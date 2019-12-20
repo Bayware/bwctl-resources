@@ -1,0 +1,105 @@
+---
+- name: "{{ linux_distribution }} | ufw | Install package"
+  apt:
+    pkg:   "ufw"
+    state: present
+  register: firewall_apt_ufw_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    firewall_apt_ufw_result is succeeded
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Configure IPv6"
+  lineinfile:
+    dest:   "/etc/default/ufw"
+    regexp: "IPV6="
+    line:   "IPV6={{ 'yes' if firewall_ipv6 else 'no' }}"
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Ensure running"
+  systemd:
+    name:    "ufw"
+    state:   started
+    enabled: yes
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Toggle logging"
+  ufw:
+    logging: "{{ firewall_logging }}"
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Set default policy for incoming/outgoing traffic"
+  ufw:
+    direction: "{{ item.direction }}"
+    policy:    "{{ item.policy }}"
+  loop: "{{ firewall_default_policies }}"
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Allow ipsec 1/2"
+  ufw:
+    port:      "{{ firewall_ipsec.isakmp.port | default(omit) }}"
+    rule:      allow
+    proto:     "{{ firewall_ipsec.isakmp.proto | default(omit) }}"
+    src:       "{{ firewall_ipsec.isakmp.src | default(omit) }}"
+    interface: "{{ firewall_ipsec.isakmp.if | default(omit) }}"
+    direction: "{{ firewall_ipsec.isakmp.direction | default(omit) }}"
+  when: firewall_ipsec.isakmp is defined
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Allow ipsec 2/2"
+  ufw:
+    port:      "{{ firewall_ipsec.nat.port | default(omit) }}"
+    rule:      allow
+    proto:     "{{ firewall_ipsec.nat.proto | default(omit) }}"
+    src:       "{{ firewall_ipsec.nat.src | default(omit) }}"
+    interface: "{{ firewall_ipsec.nat.if | default(omit) }}"
+    direction: "{{ firewall_ipsec.nat.direction | default(omit) }}"
+  when: firewall_ipsec.nat is defined
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Allow rules"
+  ufw:
+    port:      "{{ item.port | default(omit) }}"
+    rule:      allow
+    proto:     "{{ item.proto | default(omit) }}"
+    src:       "{{ item.src | default(omit) }}"
+    interface: "{{ item.if | default(omit) }}"
+    direction: "{{ item.direction | default(omit) }}"
+  loop: "{{ firewall_ports }}"
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Purge rules"
+  ufw:
+    port:      "{{ item.port | default(omit) }}"
+    rule:      allow
+    proto:     "{{ item.proto | default(omit) }}"
+    src:       "{{ item.src | default(omit) }}"
+    interface: "{{ item.if | default(omit) }}"
+    direction: "{{ item.direction | default(omit) }}"
+    delete:     yes
+  loop: "{{ firewall_ports_purge }}"
+  tags:
+    - firewall
+    - ufw
+
+- name: "{{ linux_distribution }} | ufw | Ensure enabled"
+  ufw:
+    state: enabled
+  tags:
+    - firewall
+    - ufw

@@ -1,0 +1,13 @@
+---
+common_apt_extra:
+  - "aptitude"
+
+common_pip_extra:
+  - "pyyaml"
+  - "iniparse"
+
+image_firewall_ports:
+  - { port: "22", proto: "tcp" }
+
+manifest_apt_package_list:
+  - "docker-ce"

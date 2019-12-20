@@ -1,0 +1,11 @@
+[[inputs.exec]]
+{% if 'processor' in group_names %}
+  commands=[ "/opt/reportProcessorPingMetrics.sh" ]
+{% elif 'workload' in group_names %}
+  commands=[ "/opt/reportWorkloadPingMetrics.sh" ]
+{% else %}
+  # This is not intended to be used here!
+  commands=[ ]
+{% endif %}
+  timeout = "8s"
+  data_format = "influx"

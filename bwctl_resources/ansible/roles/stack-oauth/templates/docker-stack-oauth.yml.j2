@@ -1,0 +1,30 @@
+version: "3.1"
+services:
+
+  oauth2_proxy:
+    image: bitnami/oauth2-proxy:latest
+    entrypoint:
+      - /bin/sh
+      - /oauth2_proxy_run.sh
+    ports:
+      - 4180:4180
+    volumes:
+      - /opt/bayware/oauth/oauth2_proxy_run.sh:/oauth2_proxy_run.sh
+    networks:
+      - main_backend
+    secrets:
+      - EXTEND_CLIENT_ID
+      - EXTEND_CLIENT_SECRET
+    deploy:
+      placement:
+        constraints: [node.labels.orchestrator == true]
+
+networks:
+  main_backend:
+    external: true
+
+secrets:
+  EXTEND_CLIENT_ID:
+    external: true
+  EXTEND_CLIENT_SECRET:
+    external: true

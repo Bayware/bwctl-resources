@@ -1,0 +1,11 @@
+---
+- name: "Swarm | Set labels"
+  shell: "docker node update --label-add {{ item.label }}=true {{ inventory_hostname }}"
+  delegate_to: "{{ manager_host }}"
+  become: yes
+  when: "item.group in group_names"
+  with_items: "{{ labels }}"
+  tags:
+    - docker
+    - swarm
+    - skip_ansible_lint

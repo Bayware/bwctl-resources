@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+"""
+sFlow Agent
+~~~~~~~~~~~
+
+Consume and transform sflow samples to InfluxDB measurements.
+
+Based on:
+  - sflowtool, https://github.com/sflow/sflowtool
+  - sFlow to JSON example, https://blog.sflow.com/2018/12/sflow-to-json.html
+"""
+
+import socket
+import subprocess
+import sys
+from enum import Enum
+from json import loads, JSONDecodeError
+from typing import Optional, List, Dict, Union, Iterator
+
+# Unix socket for the Telegraf process
+TELEGRAF_UNIX_SOCKET: str = "/tmp/telegraf.sock"
+# 'sflowtool' binary location
+SFLOWTOOL_BINARY: str = "/usr/local/bin/sflowtool"
+# InfluxDB measurement name
+INFLUXDB_MEASUREMENT: str = "flow_ipv6"
+# Debugging (prints any status information)
+DEBUG: bool = False
+
+
+class OperationStatus(Enum):
+    """Operation status"""
+
+    SUCCESS = 1
+    IGNORE = 2
+    FAILURE = 3
+
+
+class Status:
+    """Status with operation success indicator, informational message and optional return value"""
+
+    def __init__(self, status: OperationStatus, message: Union[str, bytes], value: Optional[bytes]):
+        self.status = status
+        self.message = message
+        if self.status == OperationStatus.SUCCESS and not value:
+            raise ValueError(
+                "Value cannot be {} when OperationStatus is {}".format(value, self.status.name)
+            )
+        self.value = value
+
+    def as_string(self) -> str:
+        """Class string representation"""
+        val: Union[str, bytes, None] = self.value.decode("utf-8") if self.value else self.value
+        return u'{}("status": {}, "message": "{}", "value": "{}")'.format(
+            self.__class__.__name__, self.status, self.message, val
+        )
+
+    def __repr__(self):
+        return self.as_string()
+
+    def __str__(self):
+        return self.as_string()
+
+
+def fail(msg: str, status: int = 1) -> None:
+    """Print message and exit with status code"""
+    print(msg, flush=True)
+    sys.exit(status)
+
+
+def parse_proto_element(element: Dict, tags: Dict, proto: str, value_key: str) -> Status:
+    """Parse and transform sflow sample element based on tags, protocol name and value key"""
+    measurement: str = "{},proto={}".format(INFLUXDB_MEASUREMENT, proto)
+    value: Optional[str] = element.get(value_key)
+    # Stop if no value is present
+    if not value:
+        return Status(
+            OperationStatus.FAILURE,
+            "Cannot extract measurement value={!r} from element={!r}".format(value_key, element),
+            None,
+        )
+    # Parse and transform all tags
+    err_tags: str = ""
+    for original_key, measurement_key in tags.items():
+        tag_value = element.get(original_key)
+        if not tag_value:
+            err_tags += ",{}".format(original_key)
+        else:
+            measurement += ",{}={}".format(measurement_key, tag_value.upper())
+
+    # Return
+    if err_tags:
+        return Status(
+            OperationStatus.FAILURE,
+            "Failed to parse tags={!r} from element={!r}".format(value_key, element),
+            None,
+        )
+    return Status(
+        OperationStatus.SUCCESS,
+        "{} OK".format(proto.upper()),
+        "{} value={}".format(measurement, value).encode("utf-8"),
+    )
+
+
+def parse_tcp_element(element: Dict) -> Status:
+    """Parse and transform TCP sflow sample element"""
+    # InfluxDB measurement tag transformation: "original element key" => "measurement tag"
+    tags: Dict = {
+        "srcIP6": "src",
+        "dstIP6": "dst",
+        "IP6_label": "label",
+        "TCPSrcPort": "src_port",
+        "TCPDstPort": "dst_port",
+    }
+    value_key: str = "sampledPacketSize"
+    proto: str = "tcp"
+    return parse_proto_element(element, tags, proto, value_key)
+
+
+def parse_udp_element(element: Dict) -> Status:
+    """Parse and transform UDP sflow sample element"""
+    tags: Dict = {
+        "srcIP6": "src",
+        "dstIP6": "dst",
+        "IP6_label": "label",
+        "UDPSrcPort": "src_port",
+        "UDPDstPort": "dst_port",
+    }
+    value_key: str = "UDPBytes"
+    proto: str = "udp"
+    return parse_proto_element(element, tags, proto, value_key)
+
+
+def parse_sflow_sample_element(element: Dict) -> Status:
+    """Parse sflow sample"""
+    # Do we have to parse anything?
+    tag: Optional[str] = element.get("flowBlock_tag")
+    if not tag or tag != "0:1":
+        return Status(
+            OperationStatus.IGNORE,
+            "Not an OVS sflow sample, element={}".format(element),
+            None,
+        )
+
+    # Supported protocols with parsing function names
+    supported_proto: Dict = {
+        "6":  parse_tcp_element,  # TCP
+        "17": parse_udp_element,  # UDP
+    }
+    # Ignored protocols
+    ignored_proto: List = ["58", "253"]  # ICMPv6, Experimental IPv6 extension header
+    # Protocol key name
+    proto_key: str = "IPProtocol"
+
+    # Get protocol name
+    proto: Optional[str] = element.get(proto_key)
+    if not proto:
+        return Status(
+            OperationStatus.FAILURE,
+            "Cannot get {!r} from element={!r}".format(proto_key, element),
+            None,
+        )
+    # Parse per protocol
+    if proto in ignored_proto:
+        return Status(
+            OperationStatus.IGNORE,
+            "Ignored proto in element={}".format(element),
+            None,
+        )
+    if proto in supported_proto:
+        return supported_proto[proto](element)
+    return Status(
+        OperationStatus.FAILURE,
+        "Unexpected error, element={}".format(element),
+        None,
+    )
+
+
+def parse_sflow_record(sock: socket.socket) -> None:
+    """
+    Parse sflow from external process, transform to InfluxDB measurement and send it to socket
+    """
+    # Run sflowtool with JSON output, pipe output to 'lines' iterator
+    lines: Iterator[Union[str, bytes]] = iter(())
+    try:
+        sflow_process = subprocess.Popen(
+            [SFLOWTOOL_BINARY, "-j"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        lines = iter(sflow_process.stdout.readline, "")
+    except subprocess.SubprocessError as err:
+        fail("Cannot run {}, error={}".format(SFLOWTOOL_BINARY, err), 126)
+
+    # Parse sflowtool output
+    for line in lines:
+        # De-serialise JSON as dictionary
+        datagram: Dict = dict()
+        try:
+            datagram = loads(line)
+        except JSONDecodeError as err:
+            fail("Cannot parse JSON: {}".format(err))
+        # Get datagram time and samples
+        localtime: Optional[str] = datagram.get("localtime")
+        samples: List = datagram.get("samples", list())
+        # Loop through sflow samples
+        for sample in [x for x in samples if x.get("sampleType", "N/A") == "FLOWSAMPLE"]:
+            # Parse sample elements
+            elements: List = sample.get("elements", list())
+            for element in elements:
+                status: Status = parse_sflow_sample_element(element)
+                # If parsed successfully, log sample and send it to socket
+                if status.status == OperationStatus.SUCCESS and status.value:
+                    print(
+                        "time={}: {}".format(localtime, status),
+                        flush=True,
+                    )
+                    try:
+                        sock.send(status.value)
+                    except OSError as err:
+                        fail("Error sending to socket {}".format(err))
+                elif status.status == OperationStatus.FAILURE:
+                    print(
+                        "time={}: {}".format(localtime, status),
+                        flush=True,
+                    )
+                elif DEBUG:
+                    print(
+                        "DEBUG: time={}: {}".format(localtime, status),
+                        flush=True,
+                    )
+
+
+def main() -> None:
+    """Main function, start the ball"""
+    # Connection to Telegraf, over a Unix socket
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        sock.connect(TELEGRAF_UNIX_SOCKET)
+        parse_sflow_record(sock)
+    except OSError as err:
+        fail("Error connecting to socket {}".format(err))
+
+
+if __name__ == "__main__":
+    main()
+
+# vim: set fileencoding=utf-8 ts=8 et sw=4 sts=4 :
+# EOF

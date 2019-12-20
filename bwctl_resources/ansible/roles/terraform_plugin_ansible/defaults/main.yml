@@ -1,0 +1,3 @@
+---
+terraform_plugin_version: "0.0.4"
+terraform_plugin_user: "{{ ansible_user }}"

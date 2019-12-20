@@ -1,0 +1,6 @@
+---
+- name: restart oauth_proxy
+  shell: docker service update --force oauth_oauth2_proxy
+  delegate_to: "{{ manager_host }}"
+  ignore_errors: yes
+  tags: skip_ansible_lint

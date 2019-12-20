@@ -1,0 +1,10 @@
+---
+- name: "Swarm | Create primary swarm manager"
+  docker_swarm:
+    state: present
+    advertise_addr: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+  become: yes
+  register: swarm_info
+  tags:
+    - docker
+    - swarm

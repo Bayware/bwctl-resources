@@ -1,0 +1,3 @@
+#!/bin/sh
+printf "\n%s (image v%s, built on %s %s:%s %s)\n" "{{ node_description_map[image_type] }}" "{{ family_version }}" "{{ ansible_date_time.date }}" "{{ ansible_date_time.time.split(":")[0] }}" "{{ ansible_date_time.time.split(":")[1] }}" "{{ ansible_date_time.tz }}"
+printf "Documentation:  https://docs.bayware.io\n"

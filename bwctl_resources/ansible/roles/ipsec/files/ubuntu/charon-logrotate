@@ -1,0 +1,10 @@
+/var/log/charon.log {
+  copytruncate
+  daily
+  dateext
+  dateformat .%Y-%m-%d.log
+  rotate 14
+  compress
+  delaycompress
+  missingok
+}

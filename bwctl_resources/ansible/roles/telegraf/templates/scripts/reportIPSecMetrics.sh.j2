@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# Write safe shell scripts
+set -euf -o pipefail
+
+# Keep environment clean
+export LC_ALL="C"
+readonly TMP_DIR="/tmp"
+readonly TMP_OUTPUT="${TMP_DIR}/$$.out"
+
+trap 'rm -rf ${TMP_OUTPUT}' \
+  EXIT SIGHUP SIGINT SIGQUIT SIGPIPE SIGTERM
+
+function get_ipsec_peer_stats {
+  # Get IPSec peer details
+  read -r S_BYTES_I S_PKTS_I S_BYTES_O S_PKTS_O <<< $(grep -E "$1.*bytes_i.*pkts.*bytes_o.*pkts" "${TMP_OUTPUT}" |awk -F'[ \\(]+' '{ print $4" "$6" "$10" "$12 }')
+  [[ -n "${S_BYTES_I}" ]] && \
+    printf "ipsec,host=%s,connection_id=%s,left_id=%s,left_ip=%s,right_id=%s,right_ip=%s bytes_in=%s\\n" "$HOSTNAME" "$1" "$3" "$2" "$5" "$4" "${S_BYTES_I}"
+  [[ -n "${S_PKTS_I}" ]] && \
+    printf "ipsec,host=%s,connection_id=%s,left_id=%s,left_ip=%s,right_id=%s,right_ip=%s packets_in=%s\\n" "$HOSTNAME" "$1" "$3" "$2" "$5" "$4" "${S_PKTS_I}"
+  [[ -n "${S_BYTES_O}" ]] && \
+    printf "ipsec,host=%s,connection_id=%s,left_id=%s,left_ip=%s,right_id=%s,right_ip=%s bytes_out=%s\\n" "$HOSTNAME" "$1" "$3" "$2" "$5" "$4" "${S_BYTES_O}"
+  [[ -n "${S_PKTS_O}" ]] && \
+    printf "ipsec,host=%s,connection_id=%s,left_id=%s,left_ip=%s,right_id=%s,right_ip=%s packets_out=%s\\n" "$HOSTNAME" "$1" "$3" "$2" "$5" "$4" "${S_PKTS_O}"
+
+}
+
+# Start the ball
+if command -v ipsec >/dev/null 2>&1; then
+  if sudo /usr/sbin/ipsec statusall > "${TMP_OUTPUT}" 2> /dev/null; then
+    for ipsec_peer in $(grep "ESTABLISHED" "${TMP_OUTPUT}" | awk -F'[ \\[\\]\\{\\}\\=]+' '{ print $2 }'); do
+      read -r S_LEFT_IP S_LEFT_ID S_RIGHT_IP S_RIGHT_ID <<< \
+        $(grep -E "${ipsec_peer}.*ESTABLISHED" "${TMP_OUTPUT}" |awk -F'[ \\[\\]\\=\\,]+' '{ sub("...", "", $18); print $9" "$17" "$18" "$26 }')
+      get_ipsec_peer_stats "${ipsec_peer}" "${S_LEFT_IP}" "${S_LEFT_ID}" "${S_RIGHT_IP}" "${S_RIGHT_ID}"
+    done
+  fi
+fi
+
+# EOF

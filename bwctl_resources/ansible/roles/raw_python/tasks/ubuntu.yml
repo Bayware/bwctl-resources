@@ -1,0 +1,5 @@
+---
+- name: Ubuntu | Bootstrap | Gather facts
+  setup:
+  tags:
+    - always

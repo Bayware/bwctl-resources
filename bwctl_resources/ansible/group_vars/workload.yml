@@ -1,0 +1,64 @@
+---
+image_firewall_ports:
+  - { port: "22", proto: "tcp" }
+
+production_firewall_ports:
+  - { port: "22",   proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.2.0/24" }
+
+non_production_firewall_ports_enabled: "{{ not env_production_mode | default(False) }}"
+non_production_firewall_ports:
+  - { port: "8080", proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in" }
+
+firewall_ports: "{{ production_firewall_ports + non_production_firewall_ports if non_production_firewall_ports_enabled else production_firewall_ports }}"
+
+firewall_ipsec:
+  isakmp: { port: "500",  proto: "udp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.2.0/24" }
+  nat:    { port: "4500", proto: "udp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.2.0/24" }
+
+# Temporary disabled. Needs to be migrated to Python 3
+# common_pip_extra:
+#   - "iperf3"
+
+common_apt_extra:
+  - "aptitude"
+  - "bc"
+  - "jq"
+  - "openssl"
+
+common_dnf_extra:
+  - "bc"
+  - "jq"
+
+filebeat_configs:
+  ubuntu:
+    - "ib_agent.yml"
+    - "strongswan.yml"
+  redhat:
+    - "ib_agent.yml"
+    - "libreswan.yml"
+
+telegraf:
+  service_list:
+    - "00common.conf"
+    - "agent_se_stats.conf"
+    # Temporary disabled
+    # - "iperf.conf"
+    - "ipsec.conf"
+    - "ping.conf"
+    - "worldmap.conf"
+  script_list:
+    # Temporary disabled. Needs to be migrated to Python 3
+    # - { src: "templates/scripts/reportIperfMetrics.py.j2",            dest: "/opt/reportIperfMetrics.py",            owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+    - { src: "templates/scripts/reportIPSecMetrics.sh.j2",            dest: "/opt/reportIPSecMetrics.sh",            owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+    # Temporary disabled
+    # - { src: "templates/scripts/reportWorkloadIperfMetrics.sh.j2",    dest: "/opt/reportWorkloadIperfMetrics.sh",    owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+    - { src: "templates/scripts/reportWorkloadAgentDNSMetrics.py.j2", dest: "/opt/reportWorkloadAgentDNSMetrics.py", owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+    - { src: "templates/scripts/reportWorkloadPingMetrics.sh.j2",     dest: "/opt/reportWorkloadPingMetrics.sh",     owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+
+node_type: "workload"
+
+manifest_apt_package_list:
+  - "strongswan"
+
+manifest_dnf_package_list:
+  - "libreswan"

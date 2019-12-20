@@ -1,0 +1,6 @@
+---
+# Common
+- include_tasks: "common.yml"
+
+# Distribution specific
+- include_tasks: "{{ linux_distribution }}.yml"

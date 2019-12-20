@@ -1,0 +1,9 @@
+---
+# Install and upgrade
+- include_tasks: "ib_agent-{{ linux_distribution }}.yml"
+
+# Configure
+- include_tasks: "configure-{{ linux_distribution }}.yml"
+
+# Service management
+- include_tasks: "services-common.yml"

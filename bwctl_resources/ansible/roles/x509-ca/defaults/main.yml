@@ -1,0 +1,13 @@
+---
+fabric_name: "{{ env_fabric_name | default('fabric') }}"
+x509_root_dir: "~/.bwctl"
+x509_user: "{{ ansible_user }}"
+x509_ca_dir: "{{ x509_root_dir }}/{{ fabric_name }}"
+x509_ca_crt_file: "rootca.crt"
+x509_ca_key_file: "rootca.key"
+x509_ca_sub_email: "admin@bayware.io"
+x509_ca_sub_c: "US"
+x509_ca_sub_o: "{{ env_customer_company_name | default ('fabric_name') }}"
+x509_ca_sub_ou: "{{ fabric_name }}"
+x509_ca_sub_cn: "{{ ansible_facts['nodename'] | default ('fabric_name') }}"
+x509_ca_subj: "/O={{ x509_ca_sub_o }}/DC={{ x509_ca_sub_ou }}/CN={{ x509_ca_sub_cn }}"

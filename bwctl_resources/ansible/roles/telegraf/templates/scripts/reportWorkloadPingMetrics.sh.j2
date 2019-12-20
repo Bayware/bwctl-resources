@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# Write safe shell scripts
+set -euf -o pipefail
+
+# Keep environment clean
+export LC_ALL="C"
+readonly TMP_DIR="/tmp"
+readonly TMP_OUTPUT="${TMP_DIR}/$$.out"
+readonly IB_AGENT_CONF='/opt/bayware/ib-agent/conf/ib-agent.conf'
+
+trap 'rm -rf ${TMP_OUTPUT}' \
+  EXIT SIGHUP SIGINT SIGQUIT SIGPIPE SIGTERM
+
+function run_ping {
+  # Run ping and print results in InfluxDB readable format
+  # Takes two arguments:
+  #   - Endpoint IP address
+  #   - Enpoint DNS name
+  set +e
+  RES_ALL=$(ping -qq -c10 -i0.2 -w6 "$2")
+  set -e
+  read -r P_TRNS P_RCVD P_LOSS <<< $(echo "${RES_ALL}" |grep -E "transmitted.*received.*loss" |awk '{ sub("%", "", $6); print $1" "$4" "$6 }')
+  printf "wchc_ping,host=%s,endpoint=%s,endpoint_ip=%s packets_sent=%s\\n" "$HOSTNAME" "$2" "$1" "$P_TRNS"
+  printf "wchc_ping,host=%s,endpoint=%s,endpoint_ip=%s packets_rcvd=%s\\n" "$HOSTNAME" "$2" "$1" "$P_RCVD"
+  printf "wchc_ping,host=%s,endpoint=%s,endpoint_ip=%s packets_loss=%s\\n" "$HOSTNAME" "$2" "$1" "$P_LOSS"
+  if [[ ${P_LOSS} != "100" ]]; then
+    read -r T_MIN T_AVG T_MAX T_MDEV <<< $(echo "${RES_ALL}" |grep -E "^r.*min\\/avg" | awk -F'[ =/]+' '{ print $6" "$7" "$8" "$9 }')
+    printf "wchc_ping,host=%s,endpoint=%s,endpoint_ip=%s time_min=%s\\n" "$HOSTNAME" "$2" "$1" "$T_MIN"
+    printf "wchc_ping,host=%s,endpoint=%s,endpoint_ip=%s time_avg=%s\\n" "$HOSTNAME" "$2" "$1" "$T_AVG"
+    printf "wchc_ping,host=%s,endpoint=%s,endpoint_ip=%s time_max=%s\\n" "$HOSTNAME" "$2" "$1" "$T_MAX"
+    printf "wchc_ping,host=%s,endpoint=%s,endpoint_ip=%s time_mdev=%s\\n" "$HOSTNAME" "$2" "$1" "$T_MDEV"
+  fi
+}
+
+# Start the ball
+[[ ! -r "${IB_AGENT_CONF}" ]] && exit 0
+{ read REST_HOST; read REST_PORT; } <<< $(grep -E "rest_ip|rest_port" "${IB_AGENT_CONF}" | awk -F'[ =]+' '{ print $2 }')
+readonly CURL_URL="http://${REST_HOST}:${REST_PORT}/api/v1/service/resolver";
+if curl -Ssf --max-time 2 "${CURL_URL}" -o"${TMP_OUTPUT}" 2> /dev/null; then
+  for endpoint in $(jq -r '. | to_entries[] | "\(.key):\(.value.unicast_ip)"' "${TMP_OUTPUT}"); do
+    read -r e_ip e_res <<< $(echo "$endpoint" |awk -F':' '{ if ($2 != "") print $1" "$2 }')
+    if [[ -n ${e_ip} ]]; then
+      run_ping "${e_ip}" "${e_res}" &
+    fi
+  done
+fi
+
+wait
+
+# EOF

@@ -1,0 +1,24 @@
+---
+- name: "Swarm | Leave swarm"
+  docker_swarm:
+    state: absent
+    force: yes
+  become: yes
+  retries: "{{ ansible_task_retries }}"
+  delay: 10
+  tags:
+    - docker
+    - swarm
+
+- name: "Swarm | Remove swarm node"
+  docker_swarm:
+    node_id: "{{ inventory_hostname }}"
+    state: remove
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  when: manager_host != inventory_hostname
+  retries: "{{ ansible_task_retries }}"
+  delay: 10
+  tags:
+    - docker
+    - swarm

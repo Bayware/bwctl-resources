@@ -1,0 +1,2 @@
+---
+distribution: "{{ env_distribution | default('ubuntu') }}"

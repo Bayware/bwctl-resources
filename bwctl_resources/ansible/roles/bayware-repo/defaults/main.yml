@@ -1,0 +1,16 @@
+---
+bayware_repo_config_url: "https://bayware-repo.s3-us-west-1.amazonaws.com/public/repo_config.yml"
+default_family_version: "{{ branches[repo_branch]['default_family_version'] }}"
+family_version: "{{ env_family_version if env_family_version is defined and env_family_version | length > 0 else default_family_version }}"
+s3_bucket: "{{ branches[repo_branch]['s3_bucket'] }}"
+
+repo_branch: "{{ env_repo_branch | default('master') }}"
+repo_type: "public"
+
+repo:
+  ubuntu:
+    repo_url: "deb {{ repo_definition['ubuntu']['bionic'][repo_type]['repo_url'] }} bionic main"
+    repo_key_url: "{{ repo_definition['ubuntu']['bionic'][repo_type]['gpg_key'] }}"
+  rhel:
+    repo_url: "{{ repo_definition['rhel']['rhel8'][repo_type]['repo_url'] }}"
+    repo_key_url: "{{ repo_definition['rhel']['rhel8'][repo_type]['gpg_key'] }}"

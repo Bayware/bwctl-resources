@@ -1,0 +1,41 @@
+---
+- name: Stack Events | Kibana | Wait elasticsearch and kibana ports to be opened
+  wait_for:
+    host:    "{{ elk_host_ip }}"
+    port:    "{{ item }}"
+    timeout: 300
+    delay:   10
+  with_items:
+    - "5601"
+    - "9200"
+  tags:
+    - kibana
+
+- name: Stack Events | Kibana | Sleep to allow full start
+  pause:
+    seconds: 20
+  tags:
+    - kibana
+
+- name: Stack Events | Kibana | Set default index pattern
+  uri:
+    url: "{{ kibana_api_url }}/api/kibana/settings/defaultIndex"
+    method: POST
+    body_format: json
+    headers:
+      kbn-xsrf: "true"
+    body: '{"value":"75abce70-fca4-11e8-b39a-41d0e33064e7"}'
+  ignore_errors: yes
+  tags:
+    - kibana
+
+- name: Stack Events | Kibana | Import objects
+  uri:
+    url: "{{ kibana_api_url }}/api/saved_objects/_bulk_create?overwrite=true"
+    method: POST
+    body_format: json
+    headers:
+      kbn-xsrf: "true"
+    body: "{{ lookup('file', 'files/kibana-dashboards.json') }}"
+  tags:
+    - kibana

@@ -1,0 +1,54 @@
+---
+image_firewall_ports:
+  - { port: "22", proto: "tcp"}
+
+firewall_ports:
+  - { port: "22",   proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "{{ ssh_src_address }}" }
+
+firewall_ipsec:
+  isakmp: { port: "500",  proto: "udp", if: "{{ ansible_default_ipv4.interface }}", direction: "in" }
+  nat:    { port: "4500", proto: "udp", if: "{{ ansible_default_ipv4.interface }}", direction: "in" }
+
+# Temporary disabled
+# common_pip_extra:
+#   - "iperf3"
+
+common_apt_extra:
+  - "aptitude"
+  - "autoconf"  # Required to build 'sflowtools'
+  - "bc"
+  - "jq"
+  - "openssl"
+
+filebeat_configs:
+  ubuntu:
+    - "ib_engine.yml"
+    - "ovs.yml"
+    - "strongswan.yml"
+
+telegraf:
+  service_list:
+    - "00common.conf"
+    # Temporary disabled
+    # - "iperf.conf"
+    - "ipsec.conf"
+    - "ping.conf"
+    - "unix_socket_listener.conf"
+    - "worldmap.conf"
+  script_list:
+    # Temporary disabled
+    # - { src: "templates/scripts/reportIperfMetrics.py.j2",          dest: "/opt/reportIperfMetrics.py",          owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+    - { src: "templates/scripts/reportIPSecMetrics.sh.j2",          dest: "/opt/reportIPSecMetrics.sh",          owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+    # Temporary disabled
+    # - { src: "templates/scripts/reportProcessorIperfMetrics.sh.j2", dest: "/opt/reportProcessorIperfMetrics.sh", owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+    - { src: "templates/scripts/reportProcessorPingMetrics.sh.j2",  dest: "/opt/reportProcessorPingMetrics.sh",  owner: "{{ ansible_user }}", group: "{{ ansible_user }}", mode: "0755" }
+
+node_type: "processor"
+
+sflowtools_version: "v5.05"
+
+manifest_apt_package_list:
+  - "strongswan"
+
+manifest_unpackaged_list:
+  - { name: "sflowtools", version: "{{ sflowtools_version }}" }

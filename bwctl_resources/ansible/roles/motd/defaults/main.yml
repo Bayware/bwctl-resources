@@ -1,0 +1,8 @@
+---
+family_version: "{{ env_family_version_full | default('X.Y.Z') }}"
+image_type:     "{{ env_image_type | default('wkld') }}"
+node_description_map:
+  c0:   "Bayware Fabric Manager"
+  c1_3: "Bayware Orchestrator Node"
+  proc: "Bayware Processor Node"
+  wkld: "Bayware Workload Node"

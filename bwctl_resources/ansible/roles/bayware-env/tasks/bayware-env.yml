@@ -1,0 +1,11 @@
+---
+- name: "Common | Bayware | Cloud region as ENV variable"
+  template:
+    src:   "templates/ib.sh.j2"
+    dest:  "/etc/profile.d/ib.sh"
+    owner: "root"
+    group: "root"
+    mode:  "0755"
+    force: yes
+  tags:
+    - bayware

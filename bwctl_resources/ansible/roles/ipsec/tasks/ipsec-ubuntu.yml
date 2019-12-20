@@ -1,0 +1,29 @@
+---
+- name: "{{ linux_distribution }} | strongSwan | Install package"
+  apt:
+    name: "strongswan"
+    state: present
+  become: yes
+  notify:
+    - "{{ linux_distribution }} restart strongswan"
+  register: strongswan_install_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    strongswan_install_result is succeeded
+  tags:
+    - ipsec
+    - strongswan
+
+- name: "{{ linux_distribution }} | strongSwan | Copy logging configuration files"
+  copy:
+    src:  "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    mode: "{{ item.mode }}"
+  become: yes
+  loop:
+    - { src: "files/{{ linux_distribution }}/charon-logging.conf", dst: "/etc/strongswan.d/charon-logging.conf", mode: "0644" }
+    - { src: "files/{{ linux_distribution }}/charon-logrotate",    dst: "/etc/logrotate.d/charon",               mode: "0644" }
+  notify:
+    - "{{ linux_distribution }} restart strongswan"
+  tags:
+    - ipsec
+    - strongswan

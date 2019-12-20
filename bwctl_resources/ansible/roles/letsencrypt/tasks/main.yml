@@ -1,0 +1,22 @@
+---
+- import_tasks: install.yml
+  tags:
+    - letsencrypt
+    - nginx
+
+- include_tasks: generate-cert.yml
+  with_items: "{{ certbot_certs }}"
+  loop_control:
+    loop_var: cert_item
+  when:
+    - not install_only
+  tags:
+    - letsencrypt
+    - nginx
+
+- import_tasks: cron.yml
+  when:
+    - not install_only
+  tags:
+    - letsencrypt
+    - nginx

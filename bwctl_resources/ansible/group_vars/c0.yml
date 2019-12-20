@@ -1,0 +1,15 @@
+---
+common_apt_extra:
+  - "aptitude"
+  - "openssl"
+
+image_firewall_ports:
+  - { port: "22", proto: "tcp" }
+
+manifest_apt_package_list:
+  - "ansible"
+  - "bwctl-api"
+
+manifest_pip_package_list:
+  - "bwctl"
+  - "bwctl-resources"

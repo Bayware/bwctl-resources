@@ -1,0 +1,5 @@
+---
+- type: log
+  enabled: true
+  paths:
+    - /var/log/pluto.log

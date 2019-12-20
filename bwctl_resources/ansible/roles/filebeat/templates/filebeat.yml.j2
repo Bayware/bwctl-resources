@@ -1,0 +1,24 @@
+output.logstash:
+  hosts: ["{{ logstash_host }}:{{ logstash_port }}"]
+  ssl.verification_mode: "none"
+  ssl.certificate_authorities: ["{{ bw_home_dir }}/certs/ca.crt"]
+  ssl.certificate: "{{ bw_home_dir }}/certs/node.crt"
+  ssl.key: "{{ bw_home_dir }}/certs/node.key"
+
+fields:
+  region: {{ hostvars[inventory_hostname]['vm_region'] }}
+  node_type: {{ node_type }}
+fields_under_root: true
+
+filebeat.config.prospectors:
+  enabled: true
+  path: /etc/filebeat/conf.d/*.yml
+  reload.enabled: true
+  reload.period: 300s
+
+filebeat.modules:
+- module: system
+  syslog:
+    enabled: true
+  auth:
+    enabled: true

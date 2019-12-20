@@ -1,0 +1,24 @@
+---
+# Common for all distributions
+#
+- name: restart rsyslog
+  systemd:
+    name:    "rsyslog"
+    state:   restarted
+    enabled: yes
+
+- name: restart sshd
+  systemd:
+    name:    "sshd"
+    state:   restarted
+    enabled: yes
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+# RedHat
+#
+
+# Ubuntu
+#

@@ -1,0 +1,29 @@
+---
+certbot_repo:         "https://github.com/certbot/certbot.git"
+certbot_version:      "master"
+certbot_keep_updated: True
+
+certbot_dir:    "/opt/certbot"
+certbot_script: "{{ certbot_dir }}/certbot-auto"
+
+certbot_create_if_missing: True
+certbot_create_method:     "standalone"
+certbot_admin_email:       "bayware.sandbox@gmail.com"
+certbot_certs: [ ]
+# - email: bayware.sandbox@gmail.com
+#   domains:
+#     - example1.com
+#     - example2.com
+# - domains:
+#     - example3.com
+certbot_create_command: "{{ certbot_script }} certonly --standalone --noninteractive --agree-tos --email {{ cert_item.email | default(certbot_admin_email) }} -d {{ cert_item.domains | join(',') }}"
+certbot_create_standalone_stop_services:
+  - "nginx"
+
+certbot_auto_renew:         True
+certbot_auto_renew_user:    "{{ ansible_user }}"
+certbot_auto_renew_hour:    "3"
+certbot_auto_renew_minute:  "30"
+certbot_auto_renew_options: "--quiet --no-self-upgrade"
+
+install_only: False

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# Write safe shell scripts
+set -eu -o pipefail
+shopt -s nullglob
+
+# Keep environment clean
+export LC_ALL="C"
+
+# Variables
+readonly IPERF_RESULTS_PREFIX="/tmp/iperf3-output-data"
+readonly STRONGSWAN_CONFIG_PATTERN="/etc/ipsec.d/ib_*.conf"
+
+function run_iperf {
+  # Run ping and print results in InfluxDB readable format
+  # Takes two arguments:
+  #   - Destination host IP address
+  #   - Destination host ID (hostname)
+  #
+  IPERF_RESULTS_AGE=$((60*60+1))
+  [[ -r "${IPERF_RESULTS_PREFIX}-$1" ]] && \
+    IPERF_RESULTS_AGE=$(( $(date +%s) - $(stat -L --format %Y "${IPERF_RESULTS_PREFIX}-$1") ))
+
+  if [[ $IPERF_RESULTS_AGE -ge $((60*60)) ]]; then
+    # run iperf again (more than 1h passed by)
+    timeout 10s /opt/reportIperfMetrics.py "$1"
+  fi
+  # parse the results
+  read -r I_BPS_O I_BPS_I <<< \
+    $(jq -r '. | "\(.end.sum_sent.bits_per_second | floor) \(.end.sum_received.bits_per_second | floor)"' "${IPERF_RESULTS_PREFIX}-$1")
+  [[ -n "${I_BPS_O}" ]] && \
+    printf "iperf,host=%s,remote_ip=%s,remote_name=%s bandwidth_out=%s\\n" "$HOSTNAME" "$1" "$2" "${I_BPS_O}"
+  [[ -n "${I_BPS_I}" ]] && \
+    printf "iperf,host=%s,remote_ip=%s,remote_name=%s bandwidth_in=%s\\n" "$HOSTNAME" "$1" "$2" "${I_BPS_I}"
+  [[ -n "${I_BPS_O}" && -n "${I_BPS_I}" ]] && \
+    printf "iperf,host=%s,remote_ip=%s,remote_name=%s bandwidth_health=%s\\n" "$HOSTNAME" "$1" "$2" "$(bc -l <<< "scale=3; 1-(${I_BPS_O}-${I_BPS_I})/${I_BPS_O}" |awk '{ printf "%.3f", $0 }')"
+}
+
+# Start the ball
+for file in $(echo "${STRONGSWAN_CONFIG_PATTERN}"); do
+  { read HOST_IP; read HOST_ID; } <<< $(grep -E "right=|rightid=" "${file}" |awk -F '[ ="]+' '{ if ($4 != "") $var=$4; else $var=$3; print $var }')
+  run_iperf "${HOST_IP}" "${HOST_ID}" &
+done
+
+wait
+
+# EOF

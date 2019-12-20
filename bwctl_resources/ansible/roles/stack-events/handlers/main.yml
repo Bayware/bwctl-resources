@@ -1,0 +1,30 @@
+---
+- name: "restart docker service"
+  systemd:
+    name: "docker"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+    force: yes
+  register: docker_restart
+
+- name: restart kibana
+  shell: docker service update --force elk_kibana
+  delegate_to: "{{ manager_host }}"
+  ignore_errors: yes
+  when: docker_restart is not changed
+  tags: skip_ansible_lint
+
+- name: restart logstash
+  shell: docker service update --force elk_logstash
+  delegate_to: "{{ manager_host }}"
+  ignore_errors: yes
+  when: docker_restart is not changed
+  tags: skip_ansible_lint
+
+- name: restart elasticsearch-curator
+  shell: docker service update --force elk_elasticsearch-curator
+  delegate_to: "{{ manager_host }}"
+  ignore_errors: yes
+  when: docker_restart is not changed
+  tags: skip_ansible_lint

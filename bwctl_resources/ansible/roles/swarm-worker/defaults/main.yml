@@ -1,0 +1,5 @@
+---
+manager_host: "{{ env_swarm_manager_host | default(inventory_hostname) }}"
+manager_address: "{{ hostvars[manager_host]['ansible_default_ipv4']['address'] }}"
+token_worker: "{{ hostvars[inventory_hostname]['swarm_info']['swarm_facts']['JoinTokens']['Worker'] }}"
+token_manager: "{{ hostvars[inventory_hostname]['swarm_info']['swarm_facts']['JoinTokens']['Manager'] }}"

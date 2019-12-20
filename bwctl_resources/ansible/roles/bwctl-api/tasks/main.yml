@@ -1,0 +1,11 @@
+---
+- name:  bwctl-api | Install
+  apt:
+    name:  "bwctl-api"
+    state: present
+    update_cache: yes
+  register: ansible_apt_result
+  retries: "{{ ansible_task_retries }}"
+  until: ansible_apt_result is succeeded
+  tags:
+    - bwctl-api

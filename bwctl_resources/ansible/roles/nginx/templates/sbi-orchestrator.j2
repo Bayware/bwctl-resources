@@ -1,0 +1,66 @@
+#server {
+#  listen                      80;
+#  server_name                 {{ controller_fqdn }};
+#  access_log                  off;
+#  location / {
+#    return    301 https://$host$request_uri;
+#  }
+#}
+
+server {
+  listen                      443;
+  #reuseport ssl http2;
+  server_name                 {{ controller_fqdn }};
+
+  proxy_send_timeout          120;
+  proxy_read_timeout          120;
+  send_timeout                120;
+  keepalive_timeout           10;
+
+  client_max_body_size        128m;
+  proxy_buffer_size           128k;
+  proxy_buffers               4       256k;
+  proxy_busy_buffers_size     256k;
+  proxy_redirect              off;
+
+  # MTLS settings
+  ssl_certificate             /opt/bayware/certs/sbapi.crt;
+  ssl_certificate_key         /opt/bayware/certs/sbapi.key;
+  ssl_trusted_certificate     /opt/bayware/certs/ca.crt;
+  ssl_client_certificate      /opt/bayware/certs/ca.crt;
+  ssl_verify_client on;
+  #ssl_dhparam                 /etc/nginx/certs/dhparam.pem;
+  # Strong SSL configuration (no old / legacy software support like IE < 9, Android < 2.2 or Java < 6)
+  ssl_protocols               TLSv1.2;
+  ssl_prefer_server_ciphers   on;
+  ssl_ciphers                 ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:DHE-RSA-AES256-SHA;
+  ssl_ecdh_curve              secp384r1;
+  ssl_session_timeout         10m;
+  ssl_session_cache           shared:SSL:10m;
+  ssl_session_tickets         off;
+  #ssl_stapling                on;
+  #ssl_stapling_verify         on;
+
+  add_header                  Strict-Transport-Security       "max-age=63072000; includeSubDomains; preload";
+  add_header                  X-Frame-Options                 DENY;
+  add_header                  X-Content-Type-Options          nosniff;
+  add_header                  X-XSS-Protection                "1; mode=block";
+  add_header                  X-Robots-Tag                    none;
+
+  location / {
+    access_log                /var/log/nginx/orchestrator-access.log;
+    error_log                 /var/log/nginx/orchestrator-error.log;
+    proxy_set_header          Host            $host;
+    proxy_set_header          X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header          X-Real-IP       $remote_addr;
+    proxy_set_header          X-Forwarded-Proto   $scheme;
+    proxy_set_header          X-Ssl-Client-Sha1 $ssl_client_fingerprint;
+    proxy_set_header          Upgrade         $http_upgrade;
+    proxy_set_header          Connection      "Upgrade";
+    proxy_http_version        1.1;
+    proxy_connect_timeout     30;
+    proxy_next_upstream       error timeout invalid_header http_500 http_502 http_503 http_504;
+    proxy_pass                http://127.0.0.1:8089;
+  }
+
+}

@@ -1,0 +1,10 @@
+---
+common_pip_extra:
+  - pyyaml
+  - iniparse
+
+filebeat_configs:
+  ubuntu:
+    - "containers.yml"
+
+node_type: "orchestrator"

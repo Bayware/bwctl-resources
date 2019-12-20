@@ -1,0 +1,64 @@
+---
+- name: "Stack Controller | Deploy | Create directory structure"
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode: "{{ item.mode  | default(omit) }}"
+  become: yes
+  with_items:
+    - { path: "{{ bw_home_dir }}", mode: "0755" }
+  tags:
+    - controller
+    - docker
+    - swarm
+
+- name: "Stack Controller | Deploy | Install ib-orchestrator package"
+  apt:
+    name:  "ib-orchestrator"
+    state: present
+    update_cache: yes
+  become: yes
+  register: orchestrator_apt_result
+  retries: "{{ ansible_task_retries }}"
+  until:    orchestrator_apt_result is succeeded
+  tags:
+    - controller
+    - docker
+    - swarm
+
+- name: "Stack Controller | Deploy | Execute 'ib-configure' if required (default password)"
+  shell: "cd {{ bw_home_dir }}/ib-orchestrator && ./ib-configure -d https://{{ controller_fqdn }}"
+  become: yes
+  when: controller_passwd is not defined
+  tags:
+    - controller
+    - docker
+    - swarm
+    - skip_ansible_lint
+
+- name: "Stack Controller | Deploy | Execute 'ib-configure' if required (custom password)"
+  shell: "cd {{ bw_home_dir }}/ib-orchestrator && ./ib-configure -d https://{{ controller_fqdn }} -p {{ controller_passwd }}"
+  become: yes
+  when: controller_passwd is defined
+  tags:
+    - controller
+    - docker
+    - swarm
+    - skip_ansible_lint
+
+- name: "Stack Controller | Deploy | Stack deploy"
+  docker_stack:
+    name: orch
+    state: present
+    prune: yes
+    with_registry_auth: yes
+    compose:
+      - "{{ bw_home_dir }}/ib-orchestrator/docker-stack-orch.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - controller
+    - docker
+    - swarm

@@ -1,0 +1,16 @@
+---
+grafana_api_url: "http://{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:3000"
+grafana_security:
+  admin_user: "admin"
+  admin_password: "{{ env_grafana_passwd | default(omit) }}"
+
+grafana_datasources:
+  - name: "InfluxDB"
+    type: "influxdb"
+    url: "http://influxdb:8086"
+    database: "telegraf"
+    is_default: yes
+
+manager_host: "{{ env_swarm_manager_host | default(inventory_hostname) }}"
+
+bw_home_dir: "/opt/bayware"

@@ -1,0 +1,16 @@
+---
+# RedHat
+#
+- name: redhat restart ipsec
+  systemd:
+    name:    "ipsec"
+    state:   restarted
+    enabled: yes
+
+# Ubuntu
+#
+- name: ubuntu restart strongswan
+  systemd:
+    name:    "strongswan"
+    state:   restarted
+    enabled: yes

@@ -1,0 +1,41 @@
+---
+- hosts: all
+  gather_facts: yes
+
+- hosts: controller
+  become: yes
+  gather_facts: no
+  tasks:
+    - include_role:
+        name: stack-controller
+      vars:
+        update_controller: True
+      when: env_swarm_manager_only is not defined
+
+- hosts: telemetry
+  become: yes
+  gather_facts: no
+  roles:
+    - role: firewall
+      vars:
+        firewall_ports_purge: "{{ image_firewall_ports }}"
+        firewall_ipv6: False
+    - telegraf
+    - filebeat
+    - swarm-worker
+    - swarm-labels
+    - stack-telemetry
+
+- hosts: events
+  become: yes
+  gather_facts: no
+  roles:
+    - role: firewall
+      vars:
+        firewall_ports_purge: "{{ image_firewall_ports }}"
+        firewall_ipv6: False
+    - telegraf
+    - filebeat
+    - swarm-worker
+    - swarm-labels
+    - stack-events

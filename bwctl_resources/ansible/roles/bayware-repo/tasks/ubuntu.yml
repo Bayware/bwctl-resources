@@ -1,0 +1,27 @@
+---
+- name: "{{ linux_distribution }} | Add Bayware repository"
+  block:
+    - name: "{{ linux_distribution }} | Bayware repository | Print configuration values"
+      debug:
+        msg:
+          - "Repository branch: '{{ repo_branch }}' (extra variable: '{{ env_repo_branch | default('N/A') }}')"
+          - "S3: '{{ s3_bucket }}'"
+          - "APT repository URL: '{{ repo[linux_distribution]['repo_url'] }}'"
+          - "Family version: '{{ family_version }}'"
+
+    - name: "{{ linux_distribution }} | Bayware repository | Add APT repository key"
+      apt_key:
+        url:   "{{ repo[linux_distribution]['repo_key_url'] }}"
+        state: present
+      register: bayware_repo_apt_key_result
+      retries: "{{ ansible_task_retries }}"
+      until:    bayware_repo_apt_key_result is succeeded
+
+    - name: "{{ linux_distribution }} | Bayware repository | Add repository"
+      apt_repository:
+        repo:  "{{ repo[linux_distribution]['repo_url'] }}"
+        state: present
+        update_cache: yes
+
+  tags:
+    - bayware-repo

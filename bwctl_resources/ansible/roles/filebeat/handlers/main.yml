@@ -1,0 +1,9 @@
+---
+# Common
+#
+- name: restart filebeat
+  systemd:
+    name:    filebeat
+    state:   restarted
+    enabled: yes
+  when: not service_started.changed

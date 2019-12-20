@@ -1,0 +1,15 @@
+---
+- name: "{{ ansible_distribution }} | Python 3 | Remove pip apt packages"
+  apt:
+    name: "{{ ubuntu_common_pip_remove_pkg }}"
+    state: absent
+    purge: yes
+  vars:
+    ubuntu_common_pip_remove_pkg:
+      - "python3-pip"
+  tags:
+    - common
+    - pip
+    - pip3
+    - python
+    - python3

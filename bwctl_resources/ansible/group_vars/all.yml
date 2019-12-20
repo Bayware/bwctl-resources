@@ -1,0 +1,34 @@
+---
+ansible_python_interpreter: "python3"
+
+# Ansible task retry count
+ansible_task_retries: 3
+
+common_apt_extra:
+  - "aptitude"
+  - "openssl"
+
+image_firewall_ports:
+  - { port: "22", proto: "tcp" }
+
+linux_distribution: "{{ ansible_distribution | lower }}"
+
+sshd_configs:
+  - { regexp: "^Protocol.*",                               line: "Protocol 2"                             }
+  - { regexp: "^#?PermitRootLogin.*",                      line: "PermitRootLogin without-password"       }
+  - { regexp: "^#?PubkeyAuthentication.*",                 line: "PubkeyAuthentication yes"               }
+  - { regexp: "^#?ChallengeResponseAuthentication.*",      line: "ChallengeResponseAuthentication no"     }
+  - { regexp: "^#?MaxAuthTries.*",                         line: "MaxAuthTries 10"                        }
+  - { regexp: "^#?HostKey /etc/ssh/ssh_host_ed25519_key$", line: "#HostKey /etc/ssh/ssh_host_ed25519_key" }
+  - { regexp: "^#?PasswordAuthentication.*",               line: "PasswordAuthentication yes"             }
+
+telegraf:
+  service_list:
+    - "00common.conf"
+    - "worldmap.conf"
+
+ssh_src_address: "{{ env_ssh_src_address | default('any') }}"
+
+fabric_name:  "{{ env_fabric_name | default('fabric') }}"
+company_name: "{{ env_customer_company_name | default('company') }}"
+domain_name:  "{{ env_hosted_zone | default('domain') }}"
