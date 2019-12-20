@@ -1,0 +1,10 @@
+---
+- name: "{{ linux_distribution }} | Manifest | Get dnf package versions"
+  shell: "set -o pipefail && echo {{ item }} $(dnf -q list --installed {{ item }} | tail -1 | awk '{print $2}') >> {{ manifest_file }}"
+  args:
+    executable: /bin/bash
+  when:
+    - manifest_dnf_package_list | length > 0
+  with_items: "{{ manifest_dnf_package_list }}"
+  tags:
+    - manifest

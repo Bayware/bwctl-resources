@@ -1,0 +1,31 @@
+###
+### Telegraf: Basic host reporting - net, netstat and nstat
+###
+{#
+  Parameters:
+    none
+#}
+
+[[inputs.net]]
+  ## By default, telegraf gathers stats from any up interface (excluding loopback)
+  ## Setting interfaces will tell it to gather these explicit interfaces,
+  ## regardless of status.
+  ##
+  ### TODO:
+  ###   - Parametrise it!
+  # interfaces = ["eth0"]
+
+# Read TCP metrics such as established, time wait and sockets counts.
+[[inputs.netstat]]
+  # no configuration
+
+# Collect kernel snmp counters and network interface statistics
+[[inputs.nstat]]
+  ## file paths for proc files. If empty default paths will be used:
+  ##    /proc/net/netstat, /proc/net/snmp, /proc/net/snmp6
+  ## These can also be overridden with env variables, see README.
+  proc_net_netstat = "/proc/net/netstat"
+  proc_net_snmp = "/proc/net/snmp"
+  proc_net_snmp6 = "/proc/net/snmp6"
+  ## dump metrics with 0 values too
+  dump_zeros       = true

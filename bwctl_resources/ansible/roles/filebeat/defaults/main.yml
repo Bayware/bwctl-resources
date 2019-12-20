@@ -1,0 +1,11 @@
+---
+fabric_name:      "{{ env_fabric_name | default('fabric') }}"
+company_name:     "{{ env_customer_company_name | default('company') }}"
+domain_name:      "{{ env_hosted_zone | default('domain') }}"
+logstash_host:    "controller-{{ fabric_name }}.{{ company_name }}.{{ domain_name }}"
+logstash_port:    "5045"
+filebeat_configs:
+  ubuntu: []
+  redhat: []
+bw_home_dir:      "/opt/bayware"
+install_only:     False

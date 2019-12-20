@@ -1,0 +1,6 @@
+{% if 'workload' in group_names %}
+[[inputs.exec]]
+  commands=[ "/opt/reportWorkloadAgentDNSMetrics.py" ]
+  timeout = "8s"
+  data_format = "influx"
+{% endif %}

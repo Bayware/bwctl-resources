@@ -1,0 +1,7 @@
+---
+elk_host_ip: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+kibana_api_url: "http://{{ elk_host_ip }}:5601"
+
+manager_host: "{{ env_swarm_manager_host | default(inventory_hostname) }}"
+
+bw_home_dir: "/opt/bayware"

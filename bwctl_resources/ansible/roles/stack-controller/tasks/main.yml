@@ -1,0 +1,6 @@
+---
+- import_tasks: stack_controller.yml
+  when: not update_controller
+
+- import_tasks: update_stack_controller.yml
+  when: update_controller

@@ -1,0 +1,19 @@
+---
+- name: "Stack Controller | Update ib-orchestrator package"
+  block:
+    - name: ib-orchestrator | apt | update ib-orchestrator
+      apt:
+        name:
+          - "ib-orchestrator"
+        only_upgrade: yes
+        update_cache: yes
+        state: latest
+      tags:     skip_ansible_lint
+      register: ib_orchestrator_apt_upgrade_result
+      retries: "{{ ansible_task_retries }}"
+      until:    ib_orchestrator_apt_upgrade_result is succeeded
+  tags:
+    - ib-orchestrator
+    - controller
+    - docker
+    - swarm

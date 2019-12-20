@@ -1,0 +1,6 @@
+---
+fabric_name: "{{ env_fabric_name | default('fabric') }}"
+ssh_root_dir: "~/.bwctl"
+ssh_user: "{{ ansible_user }}"
+ssh_key_dir: "{{ ssh_root_dir }}/{{ fabric_name }}"
+ssh_key_file: "ssh_key"

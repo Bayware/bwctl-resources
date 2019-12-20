@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+# Write safe shell scripts
+set -euf -o pipefail
+
+# Keep environment clean
+export LC_ALL="C"
+
+# Variables
+IB_LINKS_CMD="/opt/bayware/ib-engine/bin/ib-links"
+
+# Helper functions
+function fail {
+  # Print error message to stderr and exit with status code passed as first argument
+  (>&2 echo "[FATAL]: ${*:2}")
+  exit "$1"
+}
+
+function check_tool {
+  # Check if we have necessary tool
+  if ! command -v "$1" >/dev/null 2>&1; then
+    fail 1 "check_tool(): Cannot locate '$1'"
+  fi
+}
+
+function run_ping {
+  # Run ping and print results in InfluxDB readable format
+  # Takes two arguments:
+  #   - Destination host IP address
+  #   - Destination host ID (hostname)
+  set +e
+  RES_ALL=$(ping -qq -c10 -i0.2 -w6 "$1")
+  set -e
+  read -r P_TRNS P_RCVD P_LOSS <<< "$(echo "${RES_ALL}" |grep -E "transmitted.*received.*loss" |awk '{ sub("%", "", $6); print $1" "$4" "$6 }')"
+  printf "pchc_ping,host=%s,dst_host=%s,dst_ip=%s packets_sent=%s\\n" "$HOSTNAME" "$2" "$1" "$P_TRNS"
+  printf "pchc_ping,host=%s,dst_host=%s,dst_ip=%s packets_rcvd=%s\\n" "$HOSTNAME" "$2" "$1" "$P_RCVD"
+  printf "pchc_ping,host=%s,dst_host=%s,dst_ip=%s packets_loss=%s\\n" "$HOSTNAME" "$2" "$1" "$P_LOSS"
+  if [[ ${P_LOSS} != "100" ]]; then
+    read -r T_MIN T_AVG T_MAX T_MDEV <<< "$(echo "${RES_ALL}" |grep -E "^r.*min\\/avg" | awk -F'[ =/]+' '{ print $6" "$7" "$8" "$9 }')"
+    printf "pchc_ping,host=%s,dst_host=%s,dst_ip=%s time_min=%s\\n" "$HOSTNAME" "$2" "$1" "$T_MIN"
+    printf "pchc_ping,host=%s,dst_host=%s,dst_ip=%s time_avg=%s\\n" "$HOSTNAME" "$2" "$1" "$T_AVG"
+    printf "pchc_ping,host=%s,dst_host=%s,dst_ip=%s time_max=%s\\n" "$HOSTNAME" "$2" "$1" "$T_MAX"
+    printf "pchc_ping,host=%s,dst_host=%s,dst_ip=%s time_mdev=%s\\n" "$HOSTNAME" "$2" "$1" "$T_MDEV"
+  fi
+}
+
+# Start the ball
+#
+# Check necessary tools
+check_tool "${IB_LINKS_CMD}"
+check_tool jq
+
+# Run ping test for all IPsec neibouring host IP - ID pairs
+while read -r HOST_IP HOST_ID; do
+  run_ping "${HOST_IP}" "${HOST_ID}" &
+done <<< "$(${IB_LINKS_CMD} | jq -r '.[] | "\(.remote_ip) \(.name)"')"
+
+# Wait for all currently active child processes to finish
+wait
+
+# EOF

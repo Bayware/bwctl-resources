@@ -1,0 +1,14 @@
+[Unit]
+Description=sflow agent
+Wants=network-online.target
+After=telegraf.service
+ConditionPathExists={{ sflow_agent_install_dir }}/{{ sflow_agent }}
+
+[Service]
+WorkingDirectory={{ sflow_agent_install_dir }}
+ExecStart={{ sflow_agent_install_dir }}/{{ sflow_agent }}
+Restart=always
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target

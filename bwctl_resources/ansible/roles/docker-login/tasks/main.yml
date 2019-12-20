@@ -1,0 +1,8 @@
+---
+- name: "Docker | Login | Authenticate to dockerhub registry"
+  docker_login:
+    username: "{{ dockerhub.username }}"
+    password: "{{ dockerhub.password }}"
+  tags:
+    - docker
+    - swarm

@@ -1,0 +1,7 @@
+---
+- type: log
+  enabled: true
+  paths:
+    - /var/log/openvswitch/ovs-ctl.log
+    - /var/log/openvswitch/ovsdb-server.log
+    - /var/log/openvswitch/ovs-vswitchd.log

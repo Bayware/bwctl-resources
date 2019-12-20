@@ -1,0 +1,10 @@
+---
+- name: "{{ linux_distribution }} | Manifest | Get apt package versions"
+  shell: "set -o pipefail && echo {{ item }} $(dpkg -s {{ item }} | grep Version | awk '{print $2}') >> {{ manifest_file }}"
+  args:
+    executable: /bin/bash
+  when:
+    - manifest_apt_package_list | length > 0
+  with_items: "{{ manifest_apt_package_list }}"
+  tags:
+    - manifest

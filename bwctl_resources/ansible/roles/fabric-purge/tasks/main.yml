@@ -1,0 +1,8 @@
+---
+- name: Fabric | Purge | Delete fabric files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items: "{{ fabric_dirs }}"
+  tags:
+    - fabric

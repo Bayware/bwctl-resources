@@ -1,0 +1,16 @@
+---
+- name: "{{ ansible_distribution }} | Create motd.d directory if does not exist"
+  file:
+    path: "/etc/motd.d"
+    state: directory
+    mode: "0755"
+  tags:
+    - motd
+
+- name: "{{ ansible_distribution }} | Generate family version information"
+  template:
+    src:  "templates/redhat/01-bayware.j2"
+    dest: "/etc/motd.d/01-bayware"
+    mode: "0644"
+  tags:
+    - motd

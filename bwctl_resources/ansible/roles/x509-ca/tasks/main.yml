@@ -1,0 +1,54 @@
+---
+- name: x509 | CA | Create directory structure
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  with_items:
+    - { path: "{{ x509_root_dir }}", mode: "0755" }
+    - { path: "{{ x509_ca_dir }}", mode: "0755" }
+  tags:
+    - x509
+
+- name: x509 | CA | Check if CA certificate already exist
+  stat:
+    path: "{{ x509_ca_dir }}/{{ x509_ca_crt_file }}"
+  register: crt_file
+  tags:
+    - x509
+
+- name: x509 | CA | Generate CA key
+  command: "openssl genrsa -out {{ x509_ca_dir }}/{{ x509_ca_key_file }} 4096"
+  when: not crt_file.stat.exists
+  tags:
+    - x509
+
+- name: x509 | CA | Copy config
+  copy:
+    src:   "openssl.cnf"
+    dest:  "{{ x509_ca_dir }}/openssl.cnf"
+  tags:
+    - x509
+
+- name: x509 | CA | Generate CA certificate
+  command: >
+    openssl req -x509 -new -key {{ x509_ca_dir }}/{{ x509_ca_key_file }} -sha256 -days 3650
+    -out {{ x509_ca_dir }}/{{ x509_ca_crt_file }} -subj '{{ x509_ca_subj }}'
+    -extensions v3_ca -config {{ x509_ca_dir }}/openssl.cnf
+  when: not crt_file.stat.exists
+  tags:
+    - x509
+
+- name: x509 | Issue | Set CA key and certificate files permissions
+  file:
+    path: "{{ item.path }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode: "{{ item.mode  | default(omit) }}"
+  with_items:
+    - { path: "{{ x509_ca_dir }}/{{ x509_ca_key_file }}", mode: "0400" }
+    - { path: "{{ x509_ca_dir }}/{{ x509_ca_crt_file }}", mode: "0644" }
+  tags:
+    - x509

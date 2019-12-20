@@ -1,0 +1,7 @@
+---
+- hosts: workload
+  become: yes
+  roles:
+    - role: ib_agent
+      vars:
+        restart_agent: True

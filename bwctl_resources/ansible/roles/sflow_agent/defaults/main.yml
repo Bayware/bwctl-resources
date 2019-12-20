@@ -1,0 +1,3 @@
+---
+sflow_agent_install_dir: "/opt/bayware/"
+sflow_agent: "sflow_agent.py"

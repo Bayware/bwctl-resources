@@ -1,0 +1,20 @@
+version: "3"
+services:
+  visualizer:
+    image: dockersamples/visualizer:stable
+    environment:
+      - CTX_ROOT=/visualizer
+    stop_grace_period: 1m30s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - backend
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: 172.31.255.0/24

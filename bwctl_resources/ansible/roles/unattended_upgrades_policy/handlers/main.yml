@@ -1,0 +1,21 @@
+---
+# RedHat
+#
+
+# Ubuntu
+#
+- name: ubuntu restart apt-daily.timer
+  systemd:
+    name:          "apt-daily.timer"
+    state:         restarted
+    daemon_reload: yes
+  when:
+    - linux_distribution == 'ubuntu'
+
+- name: ubuntu restart apt-daily-upgrade.timer
+  systemd:
+    name:          "apt-daily-upgrade.timer"
+    state:         restarted
+    daemon_reload: yes
+  when:
+    - linux_distribution == 'ubuntu'

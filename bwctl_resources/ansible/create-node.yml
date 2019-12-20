@@ -1,0 +1,9 @@
+---
+- hosts: all
+  become: yes
+  roles:
+    - hostname
+    - x509-sign
+    - role: unattended_upgrades_policy
+      vars:
+        install_only: False

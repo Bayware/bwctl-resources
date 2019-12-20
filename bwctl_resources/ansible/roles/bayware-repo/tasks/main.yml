@@ -1,0 +1,4 @@
+---
+# Distribution specific bayware-repo
+- include_tasks: "common.yml"
+- include_tasks: "{{ linux_distribution }}.yml"

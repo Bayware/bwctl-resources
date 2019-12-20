@@ -1,0 +1,2 @@
+---
+enable_unattended_upgrades: "{{ 0 if install_only else 1 }}"

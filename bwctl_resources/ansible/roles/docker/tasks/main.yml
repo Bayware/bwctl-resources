@@ -1,0 +1,76 @@
+---
+- name: Docker | Configuration | Overlay network connection timeout workaround
+  sysctl:
+    name:  "{{ item.param }}"
+    value: "{{ item.value }}"
+    sysctl_set: yes
+    state: present
+    reload: yes
+  with_items:
+    - { param: "net.ipv4.tcp_keepalive_time",   value: "180" }
+    - { param: "net.ipv4.tcp_keepalive_intvl",  value: "30" }
+    - { param: "net.ipv4.tcp_keepalive_probes", value: "10" }
+  tags:
+    - docker
+
+- name: Docker | Install | Dependencies
+  apt:
+    name:
+      - "apt-transport-https"
+      - "ca-certificates"
+      - "software-properties-common"
+    state: present
+  tags:
+    - docker
+  register: docker_apt_dependencies_result
+  retries: "{{ ansible_task_retries }}"
+  until:    docker_apt_dependencies_result is succeeded
+
+- name: Docker | Install | Python dependencies
+  pip:
+    name:
+      - "docker"
+      - "jsondiff"
+    executable: "pip3"
+    state: present
+  when:
+    - "not docker_no_python"
+  tags:
+    - docker
+  register: docker_apt_python_dependencies_result
+  retries: "{{ ansible_task_retries }}"
+  until:    docker_apt_python_dependencies_result is succeeded
+
+- name: Docker | Install | Add GPG key
+  apt_key: url=https://download.docker.com/linux/ubuntu/gpg
+  tags:
+    - docker
+  register: docker_apt_GPG_key_result
+  retries: "{{ ansible_task_retries }}"
+  until:    docker_apt_GPG_key_result is succeeded
+
+- name: Docker | Install | Add APT repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+  tags:
+    - docker
+
+- name: Docker | Install
+  apt:
+    name:
+      - "docker-ce"
+    update_cache: yes
+    state: present
+  tags:
+    - docker
+  register: docker_apt_docker_ce_result
+  retries: "{{ ansible_task_retries }}"
+  until:    docker_apt_docker_ce_result is succeeded
+
+- name: Docker | Make sure docker is started
+  systemd:
+    name:    "docker"
+    state:   started
+    enabled: yes
+  tags:
+    - docker

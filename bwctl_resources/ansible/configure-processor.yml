@@ -1,0 +1,20 @@
+---
+- hosts: processor
+  become: yes
+  roles:
+    - role: firewall
+      vars:
+        firewall_ports_purge: "{{ image_firewall_ports }}"
+        firewall_ipv6: False
+    - role: telegraf
+      vars:
+        install_only: False
+    - role: filebeat
+      vars:
+        install_only: False
+    - bayware-env
+    - bayware-repo
+    - role: ib_engine
+      vars:
+        install_only: True
+        configure_engine: True

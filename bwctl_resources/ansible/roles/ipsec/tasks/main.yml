@@ -1,0 +1,3 @@
+---
+# Distribution specific IPSec
+- include_tasks: "ipsec-{{ linux_distribution }}.yml"

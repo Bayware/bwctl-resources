@@ -1,0 +1,9 @@
+---
+image_cloud: "{{ env_image_cloud | default('aws') }}"
+image_type:  "{{ env_image_type | default('wkld') }}"
+
+manifest_package_list:     { }
+manifest_unpackaged_list:  { }
+manifest_pip_package_list: { }
+
+manifest_file: "version_manifest_{{ image_cloud }}_{{ image_type }}.txt"

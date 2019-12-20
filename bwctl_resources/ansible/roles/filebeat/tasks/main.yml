@@ -1,0 +1,6 @@
+---
+# Install
+- include_tasks: "install-{{ linux_distribution }}.yml"
+
+# Configure
+- include_tasks: "configure-common.yml"

@@ -1,0 +1,46 @@
+---
+- name: "Common | Filebeat | Configure | Generate main configuration file"
+  template:
+    src:   "templates/filebeat.yml.j2"
+    dest:  "/etc/filebeat/filebeat.yml"
+    mode:  0644
+  when: not install_only
+  notify:
+    - "restart filebeat"
+  tags:
+    - filebeat
+
+- name: "Common | Filebeat | Configure | Create custom configuration folder"
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  become: yes
+  with_items:
+    - { path: "/etc/filebeat/conf.d", mode: "0755" }
+  tags:
+    - filebeat
+
+- name: "Common | Filebeat | Configure | Generate custom configuration files"
+  template:
+    src:   "files/{{ item }}"
+    dest:  "/etc/filebeat/conf.d/{{ item }}"
+    mode:  0644
+  with_items: "{{ filebeat_configs[linux_distribution] }}"
+  when:
+    - not install_only
+    - filebeat_configs[linux_distribution] | length > 0
+  tags:
+    - filebeat
+
+- name: "Common | Filebeat | Service | Ensure started"
+  systemd:
+    name:    "filebeat"
+    state:   started
+    enabled: yes
+  register: service_started
+  when: not install_only
+  tags:
+    - filebeat

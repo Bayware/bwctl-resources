@@ -1,0 +1,6 @@
+{% set region = hostvars[inventory_hostname]['vm_region'] %}
+{% set geohash = region_geohash[region] %}
+[[inputs.exec]]
+  commands=[ "echo 'worldmap,host={{ inventory_hostname }},region={{ region }},geohash={{ geohash }} value=\"{{ inventory_hostname }}\"'" ]
+  timeout = "8s"
+  data_format = "influx"

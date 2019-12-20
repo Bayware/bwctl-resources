@@ -1,0 +1,26 @@
+---
+- name: Common | Python 3 | Upgrade pip
+  pip:
+    name:  "pip"
+    state: latest  # noqa 403
+  register: common_pip3_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    common_pip3_result is succeeded
+  tags:
+    - common
+    - pip3
+    - python3
+
+- name: Common | Python 3 | Install extra packages
+  pip:
+    name: "{{ item }}"
+  loop: "{{ common_pip3_extra }}"
+  when:
+    - "common_pip3_extra | length > 0"
+  register: common_pip3_extra_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    common_pip3_extra_result is succeeded
+  tags:
+    - common
+    - pip3
+    - python3

@@ -1,0 +1,63 @@
+---
+- hosts: all
+  gather_facts: yes
+
+- hosts: controller
+  become: yes
+  gather_facts: no
+  tasks:
+    - block:
+        - include_role:
+            name: firewall
+          vars:
+            firewall_ports_purge: "{{ image_firewall_ports }}"
+            firewall_ipv6: False
+        - include_role:
+            name: docker-login
+        - include_role:
+            name: telegraf
+        - include_role:
+            name: filebeat
+        - include_role:
+            name: bayware-repo
+        - include_role:
+            name: swarm-worker
+        - include_role:
+            name: swarm-labels
+        - include_role:
+            name: stack-controller
+        - include_role:
+            name: letsencrypt
+        - include_role:
+            name: nginx
+        - include_role:
+            name: stack-oauth
+      when: env_swarm_manager_only is not defined
+
+- hosts: telemetry
+  become: yes
+  gather_facts: no
+  roles:
+    - role: firewall
+      vars:
+        firewall_ports_purge: "{{ image_firewall_ports }}"
+        firewall_ipv6: False
+    - telegraf
+    - filebeat
+    - swarm-worker
+    - swarm-labels
+    - stack-telemetry
+
+- hosts: events
+  become: yes
+  gather_facts: no
+  roles:
+    - role: firewall
+      vars:
+        firewall_ports_purge: "{{ image_firewall_ports }}"
+        firewall_ipv6: False
+    - telegraf
+    - filebeat
+    - swarm-worker
+    - swarm-labels
+    - stack-events

@@ -1,0 +1,10 @@
+---
+ib_agent_orchestrator: "{{ env_workload_orchestrator | default ('fqdn') }}"
+ib_agent_location_label: "{{ env_workload_location | default (inventory_hostname.split('-')[0]) }}"
+install_only: { }
+configure_agent: { }
+restart_agent: { }
+start_agent: { }
+stop_agent: { }
+update_agent: { }
+delete_agent: { }

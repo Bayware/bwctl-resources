@@ -1,0 +1,40 @@
+---
+nginx_sites:
+  - "orchestrator"
+  - "sbi-orchestrator"
+
+nginx_streams:
+  - "logstash"
+
+certbot_auto_renew_user: "root"
+certbot_certs:
+  - domains:
+      - "orchestrator-{{ fabric_name }}.{{ company_name }}.{{ domain_name }}"
+
+firewall_ports:
+  - { port: "22",   proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "{{ ssh_src_address }}" }
+  - { port: "80",   proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in" }
+  - { port: "443",  proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in" }
+  - { port: "5045", proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in" }
+  - { port: "2376", proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+  - { port: "2377", proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+  - { port: "7946", proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+  - { port: "7946", proto: "udp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+  - { port: "4789", proto: "udp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+
+x509_crt_list:
+  - { name: "node",
+      ext_file: "node_crt_extensions.ext",
+      subj: "/O={{ x509_sub_o }}/DC={{ x509_sub_ou }}/DC={{ node_type }}/CN={{ inventory_hostname }}",
+      key_type: "rsa"
+  }
+  - { name: "sbapi",
+      ext_file: "sbapi_crt_extensions.ext",
+      subj: "/O={{ x509_sub_o }}/DC={{ x509_sub_ou }}/CN=controller-{{ fabric_name }}.{{ company_name }}.{{ domain_name }}",
+      key_type: "rsa"
+  }
+  - { name: "flow",
+      ext_file: "flow_crt_extensions.ext",
+      subj: "/O={{ x509_sub_o }}/DC={{ x509_sub_ou }}/CN=flowsign-svc",
+      key_type: "ecdsa"
+  }

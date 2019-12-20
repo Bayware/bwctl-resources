@@ -1,0 +1,9 @@
+---
+- hosts: proxy
+  become: yes
+  roles:
+    - common
+    - hostname
+    - firewall
+    - letsencrypt
+    - haproxy

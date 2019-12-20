@@ -1,0 +1,29 @@
+---
+- name: "{{ linux_distribution }} Filebeat | Install | Add Elasticsearch apt key"
+  apt_key:
+    url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+    state: present
+  become: yes
+  register: filebeat_apt_GPG_key_result
+  retries: "{{ ansible_task_retries }}"
+  until:    filebeat_apt_GPG_key_result is succeeded
+  tags:
+    - filebeat
+
+- name: "{{ linux_distribution }} | Filebeat | Install | Add apt repository"
+  apt_repository:
+    repo: "deb https://artifacts.elastic.co/packages/6.x/apt stable main"
+    state: present
+    update_cache: yes
+  tags:
+    - filebeat
+
+- name: "{{ linux_distribution }} | Filebeat | Install | Install package"
+  apt:
+    name:   "filebeat"
+    state: present
+  tags:
+    - filebeat
+  register: filebeat_apt_filebeat_result
+  retries: "{{ ansible_task_retries }}"
+  until:    filebeat_apt_filebeat_result is succeeded

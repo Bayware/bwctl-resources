@@ -1,0 +1,22 @@
+---
+- name: "Swarm | Get swarm manager info"
+  docker_swarm_info:
+  become: yes
+  register: swarm_info
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - docker
+    - swarm
+
+- name: "Swarm | Join as a worker"
+  docker_swarm:
+    state: join
+    join_token: "{{ token_worker }}"
+    advertise_addr: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+    remote_addrs: [ "{{ manager_address }}:2377" ]
+  become: yes
+  retries: "{{ ansible_task_retries }}"
+  delay: 10
+  tags:
+    - docker
+    - swarm

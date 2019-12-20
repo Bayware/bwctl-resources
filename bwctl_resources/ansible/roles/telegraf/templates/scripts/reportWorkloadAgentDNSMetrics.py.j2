@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""
+Retrieve statistics from Policy Agent on each service endpoint (SE)
+Output format - InfluxDB measurement
+"""
+import requests
+import socket
+
+
+AGENT_STATS_URL = "http://127.0.0.1:5500/api/v1/service/stat"
+HOSTNAME = socket.gethostname()
+
+
+def _http_request(url=None, method="GET", params=None, headers=None, payload=None):
+    """
+    Make HTTP request, handle errors gracefully.
+    On success return tuple with HTTP status code and body JSON.
+    On failure return None and empty dictionary.
+    """
+    method = method.lower()
+    # Make HTTP request
+    try:
+        # Calling a function based on a string with the function's name
+        if method in ["delete", "get"]:
+            resp = getattr(requests, method)(url, params=params)
+        elif method in ["post", "put", "patch"]:
+            resp = getattr(requests, method)(
+                url, params=params, data=payload, headers=headers
+            )
+        else:
+            raise ValueError("Unknown HTTP method {0!r}".format(method))
+    except (
+        requests.ConnectionError,
+        requests.ConnectionError,
+        requests.HTTPError,
+        requests.URLRequired,
+        requests.TooManyRedirects,
+        requests.Timeout,
+    ) as err:
+        print(
+            "Caught exception while querying {0!r} with method {1!r}: {2!r}".format(
+                url, method, err
+            )
+        )
+        return None, dict()
+    # Return response
+    return resp.status_code, resp.json()
+
+
+def parse_and_print(data):
+    """Parse DNS stats and print it"""
+    for element in data:
+        # If 'name' is not present, skip to next value
+        if "name" not in element:
+            break
+        name = element["name"]
+
+        def try_dict_value(dict_key):
+            """Print if key is present in the dict"""
+            if dict_key in element:
+                print(
+                    "wchc_dns_stats,host={},name={} {}={}".format(
+                        HOSTNAME, name, dict_key, element[dict_key]
+                    )
+                )
+
+        try_dict_value("bytes_in")
+        try_dict_value("bytes_out")
+        try_dict_value("drops_in")
+        try_dict_value("drops_out")
+        try_dict_value("pkts_in")
+        try_dict_value("pkts_out")
+
+
+def main():
+    """Main function, start the ball"""
+    resp_code, resp_body = _http_request(AGENT_STATS_URL)
+    if resp_code != 200:
+        return
+    if "stat" in resp_body:
+        parse_and_print(resp_body["stat"])
+
+
+if __name__ == "__main__":
+    main()
+
+# vim: set fileencoding=utf-8 ts=8 et sw=4 sts=4 :
+# EOF

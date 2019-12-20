@@ -1,0 +1,38 @@
+---
+- name: "Stack Main | Deploy | Create directory structure"
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  become: yes
+  with_items:
+    - { path: "{{ bw_home_dir }}", mode: "0755" }
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Main | Deploy | Get docker compose file"
+  template:
+    src: "templates/docker-stack-main.yml.j2"
+    dest: "{{ bw_home_dir }}/docker-stack-main.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Main | Deploy | Stack deploy"
+  docker_stack:
+    name:  "main"
+    state: present
+    prune: yes
+    with_registry_auth: yes
+    compose:
+      - "{{ bw_home_dir }}/docker-stack-main.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - docker
+    - swarm

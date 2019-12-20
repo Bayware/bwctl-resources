@@ -1,0 +1,8 @@
+---
+firewall_ports:
+  - { port: "22",   proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "{{ ssh_src_address }}" }
+  - { port: "2376", proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+  - { port: "2377", proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+  - { port: "7946", proto: "tcp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+  - { port: "7946", proto: "udp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }
+  - { port: "4789", proto: "udp", if: "{{ ansible_default_ipv4.interface }}", direction: "in", src: "172.20.0.0/24" }

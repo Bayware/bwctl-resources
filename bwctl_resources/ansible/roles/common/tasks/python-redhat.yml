@@ -1,0 +1,24 @@
+---
+- name: "{{ ansible_distribution }} | Python 3 | Set pip alternatives"
+  alternatives:
+    name: "pip"
+    link: "/bin/pip"
+    path: "/usr/local/bin/pip"
+  tags:
+    - common
+    - pip
+    - pip3
+    - python
+    - python3
+
+- name: "{{ ansible_distribution }} | Python 3 | Set pip3 alternatives"
+  alternatives:
+    name: "pip3"
+    link: "/bin/pip3"
+    path: "/usr/local/bin/pip3"
+  tags:
+    - common
+    - pip
+    - pip3
+    - python
+    - python3

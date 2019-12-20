@@ -1,0 +1,12 @@
+{
+  "template": "filebeat-*",
+  "mappings": {
+    "_default_": {
+      "properties": {
+        "region_geo": {
+          "type": "geo_point"
+        }
+      }
+    }
+  }
+}

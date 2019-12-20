@@ -1,0 +1,28 @@
+---
+- name: "Common | Manifest | Create manifest file"
+  file:
+    path:  "{{ manifest_file }}"
+    state: touch
+  tags:
+    - manifest
+
+- name: "Common | Manifest | Get pip package versions"
+  shell: "set -o pipefail && echo {{ item }} $(pip3 show {{ item }} | grep Version | awk '{print $2}') >> {{ manifest_file }}"
+  args:
+    executable: /bin/bash
+  when:
+    - manifest_pip_package_list | length > 0
+  with_items: "{{ manifest_pip_package_list }}"
+  tags:
+    - manifest
+
+- name: "Common | Manifest | Get un-packaged software versions"
+  lineinfile:
+    path:   "{{ manifest_file }}"
+    regexp: "^{{ item.name }}"
+    line:   "{{ item.name }} {{ item.version }}"
+  when:
+    - manifest_unpackaged_list | length > 0
+  with_items: "{{ manifest_unpackaged_list }}"
+  tags:
+    - manifest

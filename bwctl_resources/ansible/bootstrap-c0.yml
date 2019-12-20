@@ -1,0 +1,25 @@
+---
+- hosts: c0
+  become: yes
+  roles:
+    - common
+    - role: unattended_upgrades_policy
+      vars:
+        install_only: True
+    - hostname
+    - ansible
+    - terraform
+    - role: terraform_plugin_ansible
+      become: no
+    - role: firewall
+      vars:
+        firewall_ports: "{{ image_firewall_ports }}"
+    - bayware-repo
+    - role: letsencrypt
+      vars:
+        install_only: True
+    - nginx
+    - bwctl
+    - bwctl-api
+    - manifest
+    - motd

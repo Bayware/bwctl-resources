@@ -1,0 +1,13 @@
+---
+- name: Fabric | Create | Create directory structure
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  with_items:
+    - { path: "{{ terraform_root_dir }}", mode: "0755" }
+    - { path: "{{ fabric_terraform_dir }}", mode: "0755" }
+  tags:
+    - fabric

@@ -1,0 +1,4 @@
+---
+dockerhub:
+  username: "{{ env_dockerhub_username | default('') }}"
+  password: "{{ env_dockerhub_password | default('') }}"

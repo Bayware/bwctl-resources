@@ -1,0 +1,4 @@
+---
+- import_tasks: "deploy-stack.yml"
+
+- import_tasks: "kibana.yml"

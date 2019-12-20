@@ -1,0 +1,3 @@
+---
+# Distribution specific firewall
+- include_tasks: "firewall-{{ linux_distribution }}.yml"

@@ -1,0 +1,27 @@
+---
+- name: "Common | Telegraf | Environment | Initialise 'telegraf' if undefined"
+  set_fact:
+    telegraf: "{{ telegraf | default({}) }}"
+  tags:
+    - telegraf
+
+- name: "Common | Telegraf | Environment | Set default variables if not defined"
+  set_fact:
+    telegraf_services:         "{{ telegraf.service_list     | default({}) }}"
+    telegraf_scripts:          "{{ telegraf.script_list      | default({}) }}"
+    telegraf_service_settings: "{{ telegraf.service_settings | default({}) }}"
+    telegraf_hosts:            "{{ telegraf.hosts            | default({}) }}"
+  tags:
+    - telegraf
+
+- name: "Common | Telegraf | Environment | Set default per host variables"
+  set_fact:
+    telegraf_host_values: "{{ telegraf_hosts[ansible_hostname] | default({}) }}"
+  tags:
+    - telegraf
+
+- name: "Common | Telegraf | Environment | Set default per host service list"
+  set_fact:
+    telegraf_host_services: "{{ telegraf_host_values.service_list | default({}) }}"
+  tags:
+    - telegraf

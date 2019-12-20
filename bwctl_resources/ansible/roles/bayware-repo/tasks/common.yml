@@ -1,0 +1,33 @@
+---
+- name: "Common | Bayware_repo | Get configuration"
+  block:
+    - name: "Common | Bayware_repo | Create temporary file"
+      tempfile:
+        state:  file
+        suffix: "bayware_repo_config"
+      delegate_to: localhost
+      register:    tmp_bayware_repo_config_file
+
+    - name: "Common | Bayware_repo | Get configuration"
+      get_url:
+        url:   "{{ bayware_repo_config_url }}"
+        dest:  "{{ tmp_bayware_repo_config_file.path }}"
+        force: yes
+      delegate_to: localhost
+      register: bayware_repo_get_config
+      retries: "{{ ansible_task_retries }}"
+      until:    bayware_repo_get_config is succeeded
+
+    - name: "Common | Bayware_repo | Include variables"
+      include_vars:
+        "{{ tmp_bayware_repo_config_file.path }}"
+
+    - name: "Common | Bayware_repo | Clean-up configuration"
+      file:
+        path:  "{{ tmp_bayware_repo_config_file.path }}"
+        state: absent
+      delegate_to: localhost
+
+  become: no
+  tags:
+    - bayware-repo

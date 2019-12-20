@@ -1,0 +1,19 @@
+---
+- name: Ansible | Add apt repository
+  apt_repository:
+    repo:  "ppa:ansible/ansible-2.9"
+    state: present
+  become: yes
+  tags:
+    - ansible
+
+- name: Ansible | Install package
+  apt:
+    name:         "ansible"
+    state:        present
+    update_cache: yes
+  register: ansible_apt_result
+  retries: "{{ ansible_task_retries }}"
+  until: ansible_apt_result is succeeded
+  tags:
+    - ansible

@@ -1,0 +1,145 @@
+---
+- name: Stack Events | Prerequisites | Set sysctl limit
+  sysctl:
+    name:       "vm.max_map_count"
+    value:      262144
+    sysctl_set: yes
+    state:      present
+    reload:     yes
+  tags:
+    - docker
+    - swarm
+
+- name: Stack Events | Prerequisites | Create dir for systemd docker limit override
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  become: yes
+  with_items:
+    - { path: "/etc/systemd/system/docker.service.d", mode: "0755" }
+  tags:
+    - docker
+    - swarm
+
+- name: Stack Events | Prerequisites | Put config for systemd docker limit override
+  copy:
+    src:  "{{ item.src }}"
+    dest: "{{ item.dst }}"
+  become: yes
+  with_items:
+    - { src: "files/systemd_docker_override.conf", dst: "/etc/systemd/system/docker.service.d/override.conf" }
+  notify: restart docker service
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Events | Deploy | Create directory structure"
+  file:
+    path:  "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  become: yes
+  with_items:
+    - { path: "{{ bw_home_dir }}",                       mode: "0755" }
+    - { path: "{{ bw_home_dir }}/kibana",                mode: "0755" }
+    - { path: "{{ bw_home_dir }}/logstash",              mode: "0755" }
+    - { path: "{{ bw_home_dir }}/elasticsearch",         mode: "0755" }
+    - { path: "{{ bw_home_dir }}/elasticsearch-curator", mode: "0755" }
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Events | Deploy | Get docker files"
+  copy:
+    src:  "{{ item.src }}"
+    dest: "{{ item.dst }}"
+  become: yes
+  with_items:
+    - { src: "files/elasticsearch-curator/Dockerfile", dst: "{{ bw_home_dir }}/elasticsearch-curator/Dockerfile" }
+  notify:
+    - restart elasticsearch-curator
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Events | Deploy | Build required images"
+  docker_image:
+    path: "{{ item.path }}"
+    name: "{{ item.name }}"
+    tag:  "latest"
+  become: yes
+  with_items:
+    - { path: "{{ bw_home_dir }}/elasticsearch-curator", name: "elasticsearch-curator" }
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Events | Deploy | Get configuration files 1/3"
+  copy:
+    src:  "{{ item.src }}"
+    dest: "{{ item.dst }}"
+  become: yes
+  with_items:
+    - { src: "files/logstash.conf", dst: "{{ bw_home_dir }}/logstash/logstash.conf" }
+    - { src: "files/logstash-elasticsearch-template.json", dst: "{{ bw_home_dir }}/logstash/logstash-elasticsearch-template.json" }
+  notify:
+    - restart logstash
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Events | Deploy | Get configuration files 2/3"
+  copy:
+    src:  "{{ item.src }}"
+    dest: "{{ item.dst }}"
+  become: yes
+  with_items:
+    - { src: "files/elasticsearch-curator/curator.yml", dst: "{{ bw_home_dir }}/elasticsearch-curator/curator.yml" }
+    - { src: "files/elasticsearch-curator/actions.yml", dst: "{{ bw_home_dir }}/elasticsearch-curator/actions.yml" }
+  notify:
+    - restart elasticsearch-curator
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Events | Deploy | Get configuration files 3/3"
+  copy:
+    src:  "{{ item.src }}"
+    dest: "{{ item.dst }}"
+  become: yes
+  with_items:
+    - { src: "files/kibana.yml", dst: "{{ bw_home_dir }}/kibana/kibana.yml" }
+  notify:
+    - restart kibana
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Events | Deploy | Get docker compose file"
+  template:
+    src:  "templates/docker-stack-elk.yml.j2"
+    dest: "{{ bw_home_dir }}/docker-stack-elk.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Events | Deploy | Stack deploy"
+  docker_stack:
+    name:  "elk"
+    state: present
+    prune: yes
+    with_registry_auth: yes
+    compose:
+      - "{{ bw_home_dir }}/docker-stack-elk.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - docker
+    - swarm

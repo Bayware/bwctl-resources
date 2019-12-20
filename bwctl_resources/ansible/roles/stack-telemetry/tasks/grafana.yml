@@ -1,0 +1,96 @@
+---
+- name: Stack Telemetry | Grafana | Wait port to be opened
+  wait_for:
+    port:    3000
+    timeout: 300
+    delay:   15
+  tags:
+    - telegraf
+
+- name: Stack Telemetry | Grafana | Sleep to allow full start
+  pause:
+    seconds: 5
+  tags:
+    - telegraf
+
+- name: Stack Telemetry | Grafana | Check datasources
+  uri:
+    url: "{{ grafana_api_url }}/api/datasources/id/{{ item.name }}"
+    method: GET
+    status_code:
+      - 200
+      - 404
+  register: datasources
+  with_items: "{{ grafana_datasources }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags:
+    - telegraf
+
+- name: Stack Telemetry | Grafana | Import datasources
+  uri:
+    url: "{{ grafana_api_url }}/api/datasources"
+    method: POST
+    body_format: json
+    body: "{\"name\":\"{{ item.item.name }}\",\"type\":\"{{ item.item.type }}\",\"url\":\"{{ item.item.url }}\",\
+          \"database\":\"{{ item.item.database }}\",\
+          \"isDefault\":{{ 'true' if item.item.is_default == 'yes' else 'false' }},\"access\":\"proxy\"}"
+  when: item.status == 404
+  with_items: "{{ datasources.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  tags:
+    - telegraf
+
+- name: Stack Telemetry | Grafana | Update datasources
+  uri:
+    url: "{{ grafana_api_url }}/api/datasources/{{ item.json.id }}"
+    method: PUT
+    body_format: json
+    body: "{\"name\":\"{{ item.item.name }}\",\"type\":\"{{ item.item.type }}\",\"url\":\"{{ item.item.url }}\",\
+          \"database\":\"{{ item.item.database }}\",\
+          \"isDefault\":{{ 'true' if item.item.is_default == 'yes' else 'false' }},\"access\":\"proxy\"}"
+  when: item.status == 200
+  with_items: "{{ datasources.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  tags:
+    - telegraf
+
+- name: Stack Telemetry | Grafana | Import dashboards
+  uri:
+    url: "{{ grafana_api_url }}/api/dashboards/db"
+    method: POST
+    body_format: json
+    body: "{\"dashboard\":{{ lookup('file', item) }},\"overwrite\":true,\"message\":\"Updated by ansible\"}"
+  register: dashboards
+  with_fileglob:
+    - "files/grafana*"
+  tags:
+    - telegraf
+
+- name: Stack Telemetry | Grafana | Star dashboard
+  uri:
+    url: "{{ grafana_api_url }}/api/user/stars/dashboard/{{ item.json.id }}"
+    method: POST
+  ignore_errors: yes
+  when:   item.json.slug == "world-map"
+  with_items: "{{ dashboards.results }}"
+  loop_control:
+    label: "{{ item.json.slug }}"
+  no_log: True
+  tags:
+    - telegraf
+
+- name: Stack Telemetry | Grafana | Set home dashboard
+  uri:
+    url: "{{ grafana_api_url }}/api/org/preferences"
+    method: PUT
+    body_format: json
+    body: "{\"theme\":\"\",\"homeDashboardId\":{{ item.json.id }},\"timezone\":\"\"}"
+  when:   item.json.slug == "world-map"
+  with_items: "{{ dashboards.results }}"
+  loop_control:
+    label: "{{ item.json.slug }}"
+  tags:
+    - telegraf

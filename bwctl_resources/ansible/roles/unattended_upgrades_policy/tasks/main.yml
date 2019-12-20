@@ -1,0 +1,9 @@
+---
+# 23-Oct-2019, @vovin
+# As Ansible pre-processes all static imports (import_*) during Playbook parsing time, it's not possible to use variables in task names,
+# so dynamic includes to be used (include_*). To have it done in the same manner, all includes would be dynamic.
+# For more information, refer to:
+#   - https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse.html#tradeoffs-and-pitfalls-between-includes-and-imports
+#
+# Distribution specific
+- include_tasks: "{{ linux_distribution }}.yml"

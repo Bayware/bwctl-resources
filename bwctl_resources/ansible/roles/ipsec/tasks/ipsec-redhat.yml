@@ -1,0 +1,39 @@
+---
+- name: "{{ linux_distribution }} | libreSwan | Install package"
+  dnf:
+    name: "libreswan"
+    state: present
+  become: yes
+  notify:
+    - "{{ linux_distribution }} restart ipsec"
+  register: libreswan_install_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    libreswan_install_result is succeeded
+  tags:
+    - ipsec
+    - libreswan
+
+- name: "{{ linux_distribution }} | libreSwan | Configure logging"
+  lineinfile:
+    dest:        "/etc/ipsec.conf"
+    regexp:      "        #?logfile=/var/log/pluto.log"
+    line:        "        logfile=/var/log/pluto.log"
+    insertafter: "^config setup"
+  become: yes
+  notify:
+    - "{{ linux_distribution }} restart ipsec"
+  tags:
+    - ipsec
+    - libreswan
+
+- name: "{{ linux_distribution }} | libreSwan | Copy logging configuration files"
+  copy:
+    src:  "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    mode: "{{ item.mode }}"
+  become: yes
+  loop:
+    - { src: "files/{{ linux_distribution }}/pluto-logrotate", dst: "/etc/logrotate.d/pluto", mode: "0644" }
+  tags:
+    - ipsec
+    - libreswan

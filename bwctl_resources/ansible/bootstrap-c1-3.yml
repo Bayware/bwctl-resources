@@ -1,0 +1,25 @@
+---
+- hosts: c1_3
+  become: yes
+  roles:
+    - common
+    - role: unattended_upgrades_policy
+      vars:
+        install_only: True
+    - hostname
+    - role: firewall
+      vars:
+        firewall_ports: "{{ image_firewall_ports }}"
+    - docker
+    - bayware-repo
+    - role: telegraf
+      vars:
+        install_only: True
+    - role: filebeat
+      vars:
+        install_only: True
+    - role: letsencrypt
+      vars:
+        install_only: True
+    - manifest
+    - motd

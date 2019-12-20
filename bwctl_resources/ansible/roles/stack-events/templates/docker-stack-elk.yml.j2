@@ -1,0 +1,74 @@
+version: "3"
+services:
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
+    ports:
+      - 9200:9200
+    environment:
+      - bootstrap.memory_lock=true
+      - transport.host=localhost
+      - transport.tcp.port=9300
+      - http.port=9200
+      - network.host=0.0.0.0
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - main_backend
+    deploy:
+      placement:
+        constraints: [node.labels.elk == true]
+
+  elasticsearch-curator:
+    image: elasticsearch-curator
+    depends_on:
+      - elasticsearch
+    networks:
+      - main_backend
+    volumes:
+      - {{ bw_home_dir }}/elasticsearch-curator/curator.yml:/opt/curator-config/curator.yml
+      - {{ bw_home_dir }}/elasticsearch-curator/actions.yml:/opt/curator-config/actions.yml
+    deploy:
+      placement:
+        constraints: [node.labels.elk == true]
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.4.2
+    ports:
+      - 5044:5044
+    networks:
+      - main_backend
+    volumes:
+      - {{ bw_home_dir }}/logstash/logstash.conf:/config/logstash.conf
+      - {{ bw_home_dir }}/logstash/logstash-elasticsearch-template.json:/config/logstash-elasticsearch-template.json
+      - {{ bw_home_dir }}/certs/node.crt:/config/server.crt
+      - {{ bw_home_dir }}/certs/node.p8:/config/server.key
+      - {{ bw_home_dir }}/certs/ca.crt:/config/ca.crt
+    command: logstash -f /config/logstash.conf
+    depends_on:
+      - elasticsearch
+    deploy:
+      placement:
+        constraints: [node.labels.elk == true]
+  
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.4.2
+    ports:
+      - 5601:5601
+    networks:
+      - main_backend
+    depends_on:
+      - elasticsearch
+    volumes:
+      - {{ bw_home_dir }}/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    deploy:
+      placement:
+        constraints: [node.labels.elk == true]
+
+networks:
+  main_backend:
+    external: true
+
+volumes:
+  elasticsearch_data:

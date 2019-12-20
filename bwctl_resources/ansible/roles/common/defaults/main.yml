@@ -1,0 +1,18 @@
+---
+cloud: "{{ env_image_cloud | default('none') }}"
+common_pip3_extra: [ ]
+common_apt_extra:  [ ]
+common_dnf_extra:  [ ]
+
+sshd_configs:
+  - { regexp: "^Protocol.*",                               line: "Protocol 2"                             }
+  - { regexp: "^#?PermitRootLogin.*",                      line: "PermitRootLogin without-password"       }
+  - { regexp: "^#?PubkeyAuthentication.*",                 line: "PubkeyAuthentication yes"               }
+  - { regexp: "^#?ChallengeResponseAuthentication.*",      line: "ChallengeResponseAuthentication no"     }
+  - { regexp: "^#?MaxAuthTries.*",                         line: "MaxAuthTries 10"                        }
+  - { regexp: "^#?HostKey /etc/ssh/ssh_host_ed25519_key$", line: "#HostKey /etc/ssh/ssh_host_ed25519_key" }
+  - { regexp: "^#?PasswordAuthentication.*",               line: "PasswordAuthentication no"              }
+
+ssh_keys: [ ]
+
+timezone: "Etc/UTC"

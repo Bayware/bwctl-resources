@@ -1,0 +1,7 @@
+---
+- name: Common | Time and Date | Set timezone
+  timezone:
+    name: "{{ timezone }}"
+  tags:
+    - common
+    - timezone

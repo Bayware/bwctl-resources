@@ -1,0 +1,8 @@
+---
+- hosts: all
+  gather_facts: yes
+
+- hosts: events
+  become: yes
+  roles:
+    - swarm-leave

@@ -1,0 +1,5 @@
+---
+terraform_root_dir: "~/.bwctl/terraform"
+fabric_name: "{{ env_fabric_name | default('fabric') }}"
+fabric_user: "{{ ansible_user }}"
+fabric_terraform_dir: "{{ terraform_root_dir }}/{{ fabric_name }}"

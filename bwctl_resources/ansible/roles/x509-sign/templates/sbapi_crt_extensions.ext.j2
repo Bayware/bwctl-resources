@@ -1,0 +1,6 @@
+keyUsage=critical,digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth,clientAuth
+basicConstraints=critical,CA:false
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer
+subjectAltName=DNS:controller-{{ fabric_name }}.{{ company_name }}.{{ domain_name }}

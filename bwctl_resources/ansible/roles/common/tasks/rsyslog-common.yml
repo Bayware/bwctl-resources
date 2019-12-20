@@ -1,0 +1,18 @@
+---
+- name: "{{ ansible_distribution }} | rsyslog | Add priority and facility"
+  blockinfile:
+    dest:  "/etc/rsyslog.conf"
+    insertafter: "{{ set_format_after_pattern[linux_distribution] }}"
+    block: |
+      $template precise,"%syslogpriority%,%syslogfacility%,%timegenerated%,%HOSTNAME%,%syslogtag%,%msg%\n"
+      $ActionFileDefaultTemplate precise
+  notify:
+    - "restart rsyslog"
+  vars:
+    set_format_after_pattern:
+      ubuntu: '\\$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat'
+      redhat: 'Template="RSYSLOG_TraditionalFileFormat"'
+  tags:
+    - common
+    - rsyslog
+    - syslog

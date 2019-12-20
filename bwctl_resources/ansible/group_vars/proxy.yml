@@ -1,0 +1,9 @@
+---
+firewall_ports:
+  - { port: "22",  proto: "tcp" }
+  - { port: "80",  proto: "tcp" }
+  - { port: "443", proto: "tcp" }
+
+certbot_auto_renew_user: "root"
+certbot_create_standalone_stop_services:
+  - "haproxy"

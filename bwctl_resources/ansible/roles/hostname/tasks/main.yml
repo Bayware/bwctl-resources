@@ -1,0 +1,34 @@
+---
+- name: Hostname | Set hostname
+  hostname:
+    name: "{{ hostname | default(inventory_hostname) }}"
+  tags:
+    - hosts
+
+- name: Hostname | Check if /etc/cloud/cloud.cfg exist
+  stat:
+    path: "/etc/cloud/cloud.cfg"
+  register: cloud_cfg_file
+  tags:
+    - hosts
+
+- name: Hostname | Make hostname persistent
+  lineinfile:
+    dest:   "/etc/cloud/cloud.cfg"
+    regexp: "^#?preserve_hostname"
+    line:   "preserve_hostname: true"
+  when: cloud_cfg_file.stat.exists
+  tags:
+    - hosts
+
+- name: Hostname | Change 127.0.0.1 to be localhost and external IP to be hostname
+  lineinfile:
+    dest:        "/etc/hosts"
+    regexp:      "{{ item.regexp }}"
+    line:        "{{ item.line }}"
+    insertafter: "{{ item.ia | default(omit) }}"
+  loop:
+    - { regexp: '^127\.0\.0\.1\s+localhost.*$',                     line: '127.0.0.1 localhost' }
+    - { regexp: '^#?{{ ansible_default_ipv4.address | quote }}.*$', line: '{{ ansible_default_ipv4.address }} {{ ansible_hostname }}' , ia: '^127\.0\.0\.1.*$' }
+  tags:
+    - hosts

@@ -1,0 +1,64 @@
+global
+    daemon
+    maxconn 1024
+    ssl-default-bind-ciphers EECDH+AESGCM:EDH+AESGCM
+    ssl-default-bind-options no-sslv3 no-tls-tickets force-tlsv12
+    ssl-dh-param-file /etc/haproxy/dhparam.pem
+    log 127.0.0.1 local1 notice
+
+defaults
+    log global
+    mode http
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+    default-server init-addr none
+    option forwardfor
+
+resolvers dnsresolver
+    nameserver dns1 127.0.0.53:53
+    resolve_retries 3
+    timeout retry 3s
+    hold other 30s
+    hold refused 30s
+    hold nx 30s
+    hold timeout 30s
+    hold valid 10s
+
+frontend http-in
+    bind *:80
+    mode http
+    option httplog
+    option forwardfor
+    option http-server-close
+    option httpclose
+    redirect scheme https code 301 if !{ ssl_fc }
+
+frontend https-in
+    option httplog
+    option forwardfor
+    option http-server-close
+    option httpclose
+    rspadd Strict-Transport-Security:\ max-age=31536000;\ includeSubDomains;\ preload
+    rspadd X-Frame-Options:\ DENY
+    bind *:443 ssl{% for company in company_list %} crt /etc/haproxy/{{ company['company'] }}.{{ company['domain'] }}.pem{% endfor %} ciphers EECDH+AESGCM:EDH+AESGCM force-tlsv12 no-sslv3
+{% for company in company_list %}
+    use_backend backend_{{ company['company'] }} if { ssl_fc_sni {{ company['company'] }}.{{ company['domain'] }} }
+{% endfor %}
+    default_backend default
+
+{% for company in company_list %}
+backend backend_{{ company['company'] }}
+    option httpchk HEAD /getaway HTTP/1.0
+    server aws2-w01-{{ company['fabric'] }} aws2-w01-{{ company['fabric'] }}.{{ company['company'] }}.{{ company['domain'] }}:8080/getaway check resolvers dnsresolver inter 2000 fall 5
+    server aws2-w02-{{ company['fabric'] }} aws2-w02-{{ company['fabric'] }}.{{ company['company'] }}.{{ company['domain'] }}:8080/getaway check resolvers dnsresolver inter 2000 fall 5
+    server gcp1-w01-{{ company['fabric'] }} gcp1-w01-{{ company['fabric'] }}.{{ company['company'] }}.{{ company['domain'] }}:8080/getaway check resolvers dnsresolver inter 2000 fall 5
+    server gcp1-w02-{{ company['fabric'] }} gcp1-w02-{{ company['fabric'] }}.{{ company['company'] }}.{{ company['domain'] }}:8080/getaway check resolvers dnsresolver inter 2000 fall 5
+    server gcp1-w03-{{ company['fabric'] }} gcp1-w03-{{ company['fabric'] }}.{{ company['company'] }}.{{ company['domain'] }}:8080/getaway check resolvers dnsresolver inter 2000 fall 5
+    server azr1-w01-{{ company['fabric'] }} azr1-w01-{{ company['fabric'] }}.{{ company['company'] }}.{{ company['domain'] }}:8080/getaway check resolvers dnsresolver inter 2000 fall 5
+    server azr1-w02-{{ company['fabric'] }} azr1-w02-{{ company['fabric'] }}.{{ company['company'] }}.{{ company['domain'] }}:8080/getaway check resolvers dnsresolver inter 2000 fall 5
+    server azr1-w03-{{ company['fabric'] }} azr1-w03-{{ company['fabric'] }}.{{ company['company'] }}.{{ company['domain'] }}:8080/getaway check resolvers dnsresolver inter 2000 fall 5
+{% endfor %}
+
+backend default
+    server localhost 127.0.0.1:80

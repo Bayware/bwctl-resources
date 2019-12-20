@@ -1,0 +1,37 @@
+---
+- name: "{{ ansible_distribution }} | apt | Do upgrade"
+  apt:
+    upgrade:      dist
+    update_cache: yes
+  register: common_apt_upgrade_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    common_apt_upgrade_result is succeeded
+  tags:
+    - common
+    - packages
+
+- name: "{{ ansible_distribution }} | apt | Install basic packages"
+  apt:
+    name:
+      - "git"
+      - "python3-pip"
+    state: present
+  register: common_apt_basic_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    common_apt_basic_result is succeeded
+  tags:
+    - common
+    - packages
+
+- name: "{{ ansible_distribution }} | apt | Install extra packages"
+  apt:
+    name:  "{{ common_apt_extra }}"
+    state: present
+  when:
+    - "common_apt_extra | length > 0"
+  register: common_apt_extra_result
+  retries:  "{{ ansible_task_retries }}"
+  until:    common_apt_extra_result is succeeded
+  tags:
+    - common
+    - packages

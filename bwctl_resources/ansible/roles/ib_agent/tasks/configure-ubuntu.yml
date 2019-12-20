@@ -1,0 +1,18 @@
+---
+- name: "{{ linux_distribution }} | ib_agent | Configure"
+  block:
+    - name: "{{ linux_distribution }} | ib_agent | Service stop"
+      systemd:
+        name:    "ib-agent"
+        state:   stopped
+        enabled: yes
+    - name: "{{ linux_distribution }} | ib_agent | Configure"
+      shell: >
+        /opt/bayware/ib-agent/bin/ib-configure -s
+        -c {{ ib_agent_orchestrator }}
+        -l {{ ib_agent_location_label }}
+    - name: "{{ linux_distribution }} | ib_agent | Configure IPSec logging"
+      command: "/opt/bayware/ib-agent/bin/ib-ipsec -l 2 -o /var/log/strongswan.log"
+  when: configure_agent
+  tags:
+    - ib_agent

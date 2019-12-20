@@ -1,0 +1,7 @@
+---
+- hosts: processor
+  become: yes
+  roles:
+    - role: ib_engine
+      vars:
+        start_engine: True

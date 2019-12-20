@@ -1,0 +1,8 @@
+---
+- hosts: all
+  gather_facts: yes
+
+- hosts: telemetry
+  become: yes
+  roles:
+    - swarm-leave

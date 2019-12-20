@@ -1,0 +1,7 @@
+#!/usr/sbin/nft -f
+
+table ip filter {
+  chain INPUT {
+    fib daddr type local meta secpath exists counter accept
+  }
+}

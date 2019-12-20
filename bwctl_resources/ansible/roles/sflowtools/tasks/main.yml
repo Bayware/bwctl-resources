@@ -1,0 +1,73 @@
+---
+- name: sflowtools | Pre-configure | Create temporary directory to store sources
+  tempfile:
+    state:  directory
+    suffix: "sflowtools"
+  register: sflowtools_tempdir
+  tags:
+    - sflow
+    - sflowtools
+    - telemetry
+
+- name: sflowtools | Pre-configure | Assert temporary directory path is set
+  assert:
+    that:
+      - "sflowtools_tempdir.path is defined"
+  tags:
+    - sflow
+    - sflowtools
+    - telemetry
+
+- name: sflowtools | Install | Clone git repository
+  git:
+    repo:    "{{ sflowtools_git_repository }}"
+    dest:    "{{ sflowtools_tempdir.path }}"
+    version: "{{ sflowtools_version }}"
+  tags:
+    - sflow
+    - sflowtools
+    - telemetry
+
+# Suppress ansible-lint warnings:
+#   - '[E301] Commands should not change things if nothing needs doing'
+#     Currently there is no way build 'sflowtools' without running scripts below.
+#   - '[E305] Use shell only when shell functionality is required'
+#     When using 'command', it fails with '[Errno 8] Exec format error' as scripts doesn't have shebang as the first line
+- name: sflowtools | Install | Configure
+  shell: "{{ item }}"  # noqa 301 305
+  args:
+    chdir: "{{ sflowtools_tempdir.path }}"
+  with_items:
+    - "./boot.sh"
+    - "./configure"
+  tags:
+    - sflow
+    - sflowtools
+    - telemetry
+
+- name: sflowtools | Install | Run 'make' with default target
+  make:
+    chdir: "{{ sflowtools_tempdir.path }}"
+  tags:
+    - sflow
+    - sflowtools
+    - telemetry
+
+# Assuming that we run as root ('become: yes' is set on playbook level)
+- name: sflowtools | Install | Run 'make install'
+  make:
+    chdir:  "{{ sflowtools_tempdir.path }}"
+    target: "install"
+  tags:
+    - sflow
+    - sflowtools
+    - telemetry
+
+- name: sflowtools | Install | Remove cloned git repository directory
+  file:
+    dest:  "{{ sflowtools_tempdir.path }}"
+    state: absent
+  tags:
+    - sflow
+    - sflowtools
+    - telemetry

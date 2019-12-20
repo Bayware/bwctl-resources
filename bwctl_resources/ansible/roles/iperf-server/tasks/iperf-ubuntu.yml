@@ -1,0 +1,52 @@
+---
+- name: "{{ linux_distribution }} | iperf3 | Server | Install package"
+  apt:
+    name:  "iperf3"
+    state: present
+  register: install_result
+  retries: "{{ ansible_task_retries }}"
+  until:    install_result is succeeded
+  tags:
+    - iperf
+    - iperf-server
+
+- name: "{{ linux_distribution }} | iperf3 | Server | Create iperf group"
+  group:
+    name: "iperf"
+  tags:
+    - iperf
+    - iperf-server
+
+- name: "{{ linux_distribution }} | iperf3 | Server | Create iperf user"
+  user:
+    name:   "iperf"
+    shell:  "/sbin/nologin"
+    groups: "iperf"
+  tags:
+    - iperf
+    - iperf-server
+
+- name: "{{ linux_distribution }} | iperf3 | Server | Put systemd unit file"
+  copy:
+    src:   "files/iperf3-server.service"
+    dest:  "/lib/systemd/system/iperf3-server.service"
+    owner: "root"
+    group: "root"
+    mode:  "0644"
+    force: yes
+  notify:
+    - "{{ linux_distribution }} restart iperf3-server"
+  tags:
+    - iperf
+    - iperf-server
+
+- name: "{{ linux_distribution }} | iperf3 | Server | Ensure started"
+  systemd:
+    name:    "iperf3-server"
+    state:   started
+    enabled: yes
+    daemon_reload: yes
+  register: service_started
+  tags:
+    - iperf
+    - iperf-server

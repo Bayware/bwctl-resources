@@ -1,0 +1,6 @@
+---
+- type: log
+  enabled: true
+  paths:
+    - /var/log/ib-agent/ib-agent.log
+    - /var/log/ib-agent/ib-agent-rest.log

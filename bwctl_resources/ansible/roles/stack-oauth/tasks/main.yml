@@ -1,0 +1,52 @@
+---
+- name: "Stack oauth | Deploy | Create directory structure"
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+  become: yes
+  with_items:
+    - { path: "{{ bw_home_dir }}",       mode: "0755" }
+    - { path: "{{ bw_home_dir }}/oauth", mode: "0755" }
+  tags:
+    - oauth
+    - docker
+    - swarm
+
+- name: "Stack oauth | Deploy | Get oauth entrypoint script"
+  template:
+    src:  "templates/oauth2_proxy_run.sh.j2"
+    dest: "{{ bw_home_dir }}/oauth/oauth2_proxy_run.sh"
+    mode: "0755"
+  become: yes
+  notify:
+    - restart oauth_proxy
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack oauth | Deploy | Get docker compose file"
+  template:
+    src:  "templates/docker-stack-oauth.yml.j2"
+    dest: "{{ bw_home_dir }}/docker-stack-oauth.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack oauth | Deploy | Stack deploy"
+  docker_stack:
+    name:  oauth
+    state: present
+    prune: yes
+    compose:
+      - "{{ bw_home_dir }}/docker-stack-oauth.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - oauth
+    - docker
+    - swarm

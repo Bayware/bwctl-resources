@@ -1,0 +1,94 @@
+---
+- name: "{{ linux_distribution }} | firewalld | Install package"
+  yum:
+    pkg:   "firewalld"
+    state: present
+  tags:
+    - firewall
+    - firewalld
+
+- name: "{{ linux_distribution }} | firewalld | Ensure running"
+  systemd:
+    name:    "firewalld"
+    state:   started
+    enabled: yes
+  tags:
+    - firewall
+    - firewalld
+
+- name: "{{ linux_distribution }} | firewalld | Add 'eth0' interface to 'public' zone"
+  firewalld:
+    immediate: yes
+    zone:      "public"
+    interface: "{{ ansible_default_ipv4.interface }}"
+    permanent: yes
+    state:     enabled
+  tags:
+    - firewall
+    - firewalld
+
+- name: "{{ linux_distribution }} | firewalld | Allow 'gre' traffic"
+  firewalld:
+    immediate: yes
+    rich_rule: 'rule protocol value="gre" accept'
+    permanent: yes
+    state:     enabled
+  when: firewall_ipsec.isakmp is defined
+  tags:
+    - firewall
+    - firewalld
+
+- name: "{{ linux_distribution }} | firewalld | Allow 'ipsec' service"
+  firewalld:
+    immediate: yes
+    service:   "ipsec"
+    permanent: yes
+    state:     enabled
+  when: firewall_ipsec.isakmp is defined
+  tags:
+    - firewall
+    - firewalld
+
+- name: "{{ linux_distribution }} | firewalld | Allow ports"
+  firewalld:
+    immediate: yes
+    zone:      "public"
+    port:      "{{ item.port }}/{{ item.proto | default('tcp') }}"
+    permanent: yes
+    state:     enabled
+  with_items: "{{ firewall_ports }}"
+  tags:
+    - firewall
+    - firewalld
+
+- name: "{{ linux_distribution }} | nftables | Copy ib-agent configuration"
+  copy:
+    src:   "files/nftables/ib-agent.nft"
+    dest:  "/etc/nftables/ib-agent.nft"
+    owner: "root"
+    group: "root"
+    mode:  "0644"
+  when: "'workload' in group_names"
+  tags:
+    - firewall
+    - nftables
+
+- name: "{{ linux_distribution }} | nftables | Enable ib-agent configuration"
+  lineinfile:
+    dest:  "/etc/sysconfig/nftables.conf"
+    line:  'include "/etc/nftables/ib-agent.nft"'
+    state: present
+  when: "'workload' in group_names"
+  tags:
+    - firewall
+    - nftables
+
+- name: "{{ linux_distribution }} | nftables | Ensure running"
+  systemd:
+    name:    "nftables"
+    state:   started
+    enabled: yes
+  when: "'workload' in group_names"
+  tags:
+    - firewall
+    - nftables

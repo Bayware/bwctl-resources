@@ -1,0 +1,55 @@
+---
+- name: "Stack Telemetry | Deploy | Create directory structure"
+  file:
+    path:  "{{ item.path }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode:  "{{ item.mode  | default(omit) }}"
+    state: directory
+  loop:
+    - { path: "{{ bw_home_dir }}", mode: "0755" }
+    - { path: "{{ bw_home_dir }}/sflow_enrich", mode: "0755" }
+  become: yes
+  tags:
+    - docker
+    - swarm
+    - sflow_enrich
+
+- name: "Stack Telemetry | Deploy | Copy 'sflow_enrich' application"
+  copy:
+    src:   "files/sflow_enrich/{{ item }}"
+    dest:  "{{ bw_home_dir }}/sflow_enrich/{{ item }}"
+    mode:  "0755"
+    force: yes
+  loop:
+    - "app.sh"
+    - "sflow_enrich.py"
+  become: yes
+  tags:
+    - docker
+    - swarm
+    - sflow_enrich
+
+- name: "Stack Telemetry | Deploy | Generate docker compose file"
+  template:
+    src: "templates/docker-stack-ipg.yml.j2"
+    dest: "{{ bw_home_dir }}/docker-stack-ipg.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - docker
+    - swarm
+
+- name: "Stack Telemetry | Deploy | Stack deploy"
+  docker_stack:
+    name: ipg
+    state: present
+    prune: yes
+    with_registry_auth: yes
+    compose:
+      - "{{ bw_home_dir }}/docker-stack-ipg.yml"
+  become: yes
+  delegate_to: "{{ manager_host }}"
+  tags:
+    - docker
+    - swarm

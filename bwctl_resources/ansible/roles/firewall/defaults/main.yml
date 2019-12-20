@@ -1,0 +1,9 @@
+---
+firewall_ports:       []
+firewall_ports_purge: []
+firewall_ipsec:       {}
+firewall_logging:     "off"
+firewall_default_policies:
+  - { direction: incoming, policy: deny  }
+  - { direction: outgoing, policy: allow }
+firewall_ipv6: True

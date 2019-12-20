@@ -1,0 +1,33 @@
+---
+- name: Letsencrypt | Install | Install prerequisites
+  apt:
+    name:
+      - "git"
+      - "openssl"
+      - "python"
+      - "python-dev"
+      - "virtualenv"
+      - "python-virtualenv"
+      - "gcc"
+      - "libaugeas0"
+      - "augeas-lenses"
+      - "libssl-dev"
+      - "libffi-dev"
+      - "ca-certificates"
+    state: present
+  register: letsencrypt_apt_dependencies_result
+  retries: "{{ ansible_task_retries }}"
+  until:    letsencrypt_apt_dependencies_result is succeeded
+
+- name: Letsencrypt | Install | Clone Certbot sources
+  git:
+    repo:    "{{ certbot_repo }}"
+    dest:    "{{ certbot_dir }}"
+    version: "{{ certbot_version }}"
+    update:  "{{ certbot_keep_updated }}"
+    force:   yes
+
+- name: Letsencrypt | Install | Ensure certbot-auto is executable
+  file:
+    path: "{{ certbot_script }}"
+    mode: "0755"

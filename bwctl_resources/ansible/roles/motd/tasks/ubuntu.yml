@@ -1,0 +1,26 @@
+---
+- name: "{{ ansible_distribution }} | Generate family version information"
+  template:
+    src:  "templates/ubuntu/01-bayware.j2"
+    dest: "/etc/update-motd.d/01-bayware"
+    mode: "0755"
+  tags:
+    - motd
+
+- name: "{{ ansible_distribution }} | Remove unused motd parts"
+  file:
+    path:  "{{ item }}"
+    state: absent
+  loop:
+    - "/etc/update-motd.d/10-help-text"
+    - "/etc/update-motd.d/80-livepatch"
+  tags:
+    - motd
+
+- name: "{{ ansible_distribution }} | Disable motd news"
+  replace:
+    path:    "/etc/default/motd-news"
+    regexp:  "^ENABLED=.*$"
+    replace: "ENABLED=0"
+  tags:
+    - motd

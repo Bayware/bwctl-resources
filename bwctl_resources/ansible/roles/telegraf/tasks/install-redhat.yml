@@ -1,0 +1,20 @@
+---
+- name: "{{ linux_distribution }} | Telegraf | Install | Add yum repository"
+  yum_repository:
+    name:        "InfluxDB"
+    description: "InfluxDB Repository - RHEL $releasever"
+    baseurl:     "{{ telegraf_yum_repository }}"
+    gpgkey:      "{{ influxdb_key_url }}"
+    gpgcheck:    yes
+  tags:
+    - telegraf
+
+- name: "{{ linux_distribution }} | Telegraf | Install | Install package"
+  dnf:
+    name:  "telegraf"
+    state: present
+  tags:
+    - telegraf
+  register: filebeat_dnf_telegraf_result
+  retries: "{{ ansible_task_retries }}"
+  until:    filebeat_dnf_telegraf_result is succeeded
