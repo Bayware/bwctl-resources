@@ -1,5 +1,5 @@
 .SHELLFLAGS = -ec
-DEFAULT_GOAL = help
+.DEFAULT_GOAL = help
 
 ci-test:  ## Run CI oriented tests
 	$(PWD)/tests/run_tests.sh
