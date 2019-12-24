@@ -1,6 +1,6 @@
 # bwctl-resources
 
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](code-of-conduct.md) [![Build Status](https://travis-ci.org/Bayware/bwctl-resources.svg?branch=master)](https://travis-ci.org/Bayware/bwctl-resources) 
+[![Build Status](https://travis-ci.org/Bayware/bwctl-resources.svg?branch=master)](https://travis-ci.org/Bayware/bwctl-resources) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](code-of-conduct.md) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Resources that required and used by [bwctl](https://github.com/Bayware/bwctl) CLI infrastructure automation tool.
 
