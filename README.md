@@ -10,9 +10,9 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-- [Ansible >=2.8](https://www.ansible.com/)
-- [Python >=3.6](https://www.python.org/downloads/)
-- [Terraform ~0.11](https://www.terraform.io/downloads.html)
+- [Ansible](https://www.ansible.com/) >= 2.8
+- [Python](https://www.python.org/downloads/) >= 3.6
+- [Terraform](https://www.terraform.io/downloads.html) = 0.11
 
 ### Installing
 
