@@ -26,7 +26,7 @@ Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on the process for 
 
 ## Code of Conduct
 
-Please read [CODE_OF_CONDUCT.md](./CODE_OF_CINDUCT.md) for details on our code of conduct.
+Please read [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for details on our code of conduct.
 
 ## Versioning
 
