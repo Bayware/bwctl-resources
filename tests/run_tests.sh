@@ -38,6 +38,6 @@ find ./ -name "*.sh" -print0 | /usr/bin/env xargs -0 -t -n1 shellcheck -s bash
 print_blu "\u21e8 yamllint information"
 yamllint --version
 print_blu "\u21e8 Run shell scripts lint check"
-find ./ -name '*.yml' -print0 | /usr/bin/env xargs -0 -t -n1 yamllint -c .tests/yaml-lint-custom-rules/yaml_lint_custom.yml
+find ./ -name '*.yml' -print0 | /usr/bin/env xargs -0 -t -n1 yamllint -c ./tests/yaml-lint-custom-rules/yaml_lint_custom.yml
 
 # EOF
