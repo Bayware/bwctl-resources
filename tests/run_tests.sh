@@ -28,7 +28,7 @@ find ./ -name '*.yml' -print0 | /usr/bin/env xargs -0 -t -n1 ansible-lint -v -p 
 print_blu "\u21e8 pylint information"
 pylint --version
 print_blu "\u21e8 Run Python lint check"
-find ./ -name '*.py' -print0 | /usr/bin/env xargs -0 -t -n1 pylint
+find ./ -name '*.py' -print0 | /usr/bin/env xargs -0 -t -n1 pylint --rcfile=./tests/pylintrc
 
 print_blu "\u21e8 shellcheck information"
 shellcheck --version

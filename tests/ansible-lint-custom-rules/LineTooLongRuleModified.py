@@ -1,5 +1,7 @@
-from ansiblelint import AnsibleLintRule
+# pylint: skip-file
 import os
+
+from ansiblelint import AnsibleLintRule
 
 class LineTooLongRuleModified(AnsibleLintRule):
     id = '299'
@@ -15,4 +17,3 @@ class LineTooLongRuleModified(AnsibleLintRule):
 
     def match(self, file, line):
         return len(line) > 200
-

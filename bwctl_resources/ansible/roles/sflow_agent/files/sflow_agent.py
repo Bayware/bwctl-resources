@@ -79,9 +79,9 @@ def parse_sflow_record(sock: socket.socket) -> None:
         fail("Cannot run {}, error={}".format(OVS_DPCTL_CMD, err), 126)
 
     for line in lines:
-        ln = line.decode("utf-8")
-        if any(x in ln for x in ['proto=6', 'proto=17']):
-            for measurement in parse_sflow_sample_element(ln):
+        ln_val = line.decode("utf-8")
+        if any(x in ln_val for x in ['proto=6', 'proto=17']):
+            for measurement in parse_sflow_sample_element(ln_val):
                 print(measurement)
                 try:
                     sock.send(measurement.encode("utf-8"))
