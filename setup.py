@@ -1,12 +1,16 @@
+"""
+bwctl-resources packaging setup script
+"""
 import os
 
 from setuptools import setup
 
 
 def read(filename):
+    """Read file's content"""
     try:
-        with open(os.path.join(os.path.dirname(__file__), filename)) as f:
-            return f.read()
+        with open(os.path.join(os.path.dirname(__file__), filename)) as f_var:
+            return f_var.read()
     except IOError as err:
         print("I/O error while reading {0!r} ({1!s}): {2!s}".format(filename, err.errno, err.strerror))
         return "0.0.1"
