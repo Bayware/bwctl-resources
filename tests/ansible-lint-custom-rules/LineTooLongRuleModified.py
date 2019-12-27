@@ -1,6 +1,7 @@
 # pylint: skip-file
-import os
-
+"""
+Custom LineTooLongRule implementation
+"""
 from ansiblelint import AnsibleLintRule
 
 class LineTooLongRuleModified(AnsibleLintRule):
