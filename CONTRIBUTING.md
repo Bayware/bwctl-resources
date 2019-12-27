@@ -4,13 +4,13 @@ Any contribution to `bwctl-resources` is welcome, be it in the form of an email,
 
 # Documentation
 
-The documentation for `bwctl-resources` is ...
+The documentation for `bwctl-resources` is https://docs.bayware.io
 
-If you want to contribute to the documentation, you can sent us a clear description of the needed changes, e.g. as a unified diff
+If you want to contribute to the documentation, you can send us a clear description of the needed changes, e.g. as a unified diff
 
 # Code
 
-Code changes are welcome as well, everything is going to be tested automatically (`ansible-lint`, `pylint`, `shellcheck`, `yamllint`) with the [test script](../blob/master/test/run_tests.sh). Please make sure that changes are passing the tests locally before creating the PR
+Code changes are welcome as well. Everything will be tested automatically (`ansible-lint`, `pylint`, `shellcheck`, `yamllint`) with the [test script](../blob/master/test/run_tests.sh). Please make sure that changes are passing the tests locally before creating the PR
 
 # Vulnerabilities
 
