@@ -1,5 +1,5 @@
 """
-bwctl-resources packaging config
+bwctl-resources packaging setup script
 """
 import os
 
